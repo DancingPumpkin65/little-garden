@@ -8,8 +8,9 @@ signal mute_changed(muted: bool)
 var title_screen := Control.new()
 var pause_screen := Control.new()
 var objective: Label
-var prompt: Label
 var dialogue: Label
+var bubble := PanelContainer.new()
+var bubble_tail := Polygon2D.new()
 var charge := ProgressBar.new()
 var finish: Label
 
@@ -48,22 +49,33 @@ func _ready() -> void:
 	objective = label("Bring the little seed to the stone bowl.", 21)
 	objective.position = Vector2(34, 30)
 	root.add_child(objective)
-	var controls := label("WASD / arrows  move     Shift  run     Space  jump     E  pick up     Hold click  aim & throw     R  recover seed     Esc  pause", 14)
-	controls.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	controls.position = Vector2(34, -40)
-	root.add_child(controls)
-	prompt = label("", 20)
-	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	prompt.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	prompt.position = Vector2(-300, -120)
-	prompt.size = Vector2(600, 40)
-	root.add_child(prompt)
-	dialogue = label("", 22)
-	dialogue.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	dialogue.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	dialogue.position = Vector2(-420, -200)
-	dialogue.size = Vector2(840, 60)
-	root.add_child(dialogue)
+	dialogue = label("", 21, Color.BLACK)
+	dialogue.add_theme_color_override("font_shadow_color", Color.TRANSPARENT)
+	dialogue.add_theme_constant_override("outline_size", 0)
+	var speech_font := SystemFont.new()
+	speech_font.font_names = PackedStringArray(["Arial"])
+	speech_font.font_weight = 700
+	dialogue.add_theme_font_override("font", speech_font)
+	dialogue.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dialogue.custom_minimum_size = Vector2(300, 0)
+	var bubble_style := StyleBoxFlat.new()
+	bubble_style.bg_color = Color.WHITE
+	bubble_style.set_corner_radius_all(28)
+	bubble_style.content_margin_left = 22
+	bubble_style.content_margin_right = 22
+	bubble_style.content_margin_top = 15
+	bubble_style.content_margin_bottom = 18
+	bubble_style.shadow_color = Color.BLACK
+	bubble_style.shadow_size = 1
+	bubble_style.shadow_offset = Vector2(0, 8)
+	bubble.add_theme_stylebox_override("panel", bubble_style)
+	bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bubble.add_child(dialogue)
+	root.add_child(bubble)
+	bubble_tail.polygon = PackedVector2Array([Vector2(-10, -2), Vector2(10, -2), Vector2(0, 14)])
+	bubble_tail.color = Color.WHITE
+	bubble.add_child(bubble_tail)
+	bubble.hide()
 	charge.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	charge.position = Vector2(-90, -85)
 	charge.size = Vector2(180, 6)
@@ -114,4 +126,16 @@ func _ready() -> void:
 	pause_screen.hide()
 
 func speech(text: String) -> void:
-	dialogue.text = text
+	dialogue.text = text.trim_prefix("Ari: ")
+	bubble.visible = not text.is_empty()
+	bubble.reset_size()
+
+# Projected every frame so speech stays attached while the camera or speaker moves.
+func place_speech(camera: Camera3D, world_position: Vector3) -> void:
+	if dialogue.text.is_empty(): return
+	bubble.visible = not camera.is_position_behind(world_position)
+	var point := camera.unproject_position(world_position)
+	var viewport_size := get_viewport().get_visible_rect().size
+	bubble.visible = bubble.visible and Rect2(Vector2.ZERO, viewport_size).has_point(point)
+	bubble.position = Vector2(clampf(point.x - bubble.size.x / 2, 16, viewport_size.x - bubble.size.x - 16), maxf(16, point.y - bubble.size.y - 22))
+	bubble_tail.position = Vector2(clampf(point.x - bubble.position.x, 24, bubble.size.x - 24), bubble.size.y)

@@ -1,7 +1,7 @@
 [
   {
     "variant": "girl",
-    "triangles": 4072,
+    "triangles": 4144,
     "bones": 15,
     "materials": 2,
     "textures": 0,
@@ -10,7 +10,7 @@
   },
   {
     "variant": "guy",
-    "triangles": 4020,
+    "triangles": 4092,
     "bones": 15,
     "materials": 2,
     "textures": 0,

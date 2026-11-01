@@ -1,6 +1,8 @@
 extends Node3D
 
 enum Stage { TITLE, SEED, REVEAL, GARDEN }
+const ACTION_DURATION := 0.7
+const THROW_RELEASE := 0.4
 var stage := Stage.TITLE
 var world := GardenWorld.new()
 var player := GardenCharacter.new()
@@ -21,6 +23,10 @@ var bloom := 0.0
 var elapsed := 0.0
 var speech_time := 0.0
 var yaw := 0.0
+var pitch := 0.6
+var action_time := 0.0
+var action_released := false
+var throw_velocity := Vector3.ZERO
 var orbiting := false
 var testing := false
 var test_tick := 0
@@ -130,6 +136,7 @@ func build_seed() -> void:
 func start() -> void:
 	stage = Stage.SEED
 	hud.title_screen.hide()
+	if not testing and screenshot_mode.is_empty(): Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	say("Ari: That little seed has been waiting for you.", 5)
 
 func say(text: String, seconds: float = 4.0) -> void:
@@ -142,33 +149,37 @@ func set_pause(value: bool) -> void:
 	hud.pause_screen.visible = value
 	charging = false
 	orbiting = false
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if value else Input.MOUSE_MODE_CAPTURED
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE and stage != Stage.TITLE: set_pause(not pause)
 		if pause or stage == Stage.TITLE: return
 		if event.keycode == KEY_E: interact()
-		if event.keycode == KEY_SPACE: player.jump_requested = true
+		if event.keycode == KEY_SPACE and player.action.is_empty(): player.jump_requested = true
 		if event.keycode == KEY_R and stage == Stage.SEED: recover()
 	if pause or stage == Stage.TITLE: return
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_RIGHT: orbiting = event.pressed
-		if event.button_index == MOUSE_BUTTON_LEFT and held:
+		if event.button_index == MOUSE_BUTTON_LEFT and held and player.action.is_empty():
 			if event.pressed:
 				charging = true
 				power = 0
 			elif charging: throw_seed()
-	if event is InputEventMouseMotion and orbiting:
-		yaw -= event.relative.x * 0.006
+	if event is InputEventMouseMotion and (Input.mouse_mode == Input.MOUSE_MODE_CAPTURED or orbiting):
+		yaw -= event.relative.x * 0.004
+		pitch = clampf(pitch + event.relative.y * 0.003, 0.18, 1.15)
 
 func interact() -> void:
+	if not player.action.is_empty(): return
 	if stage == Stage.SEED and not held and player.position.distance_to(ball.position) < 2.0:
-		held = true
+		player.action = "pickup"
+		player.action_phase = 0
+		action_time = 0
+		player.visual.rotation.y = atan2(ball.position.x - player.position.x, ball.position.z - player.position.z)
 		ball.freeze = true
 		ball.collision_layer = 0
 		ball.collision_mask = 0
-		player.carrying = true
 		sound.chime(392)
 		say("Ari: Plant it in the bowl. Give it a gentle throw.")
 	elif player.position.distance_to(friend.position) < 2.7:
@@ -181,19 +192,41 @@ func launch_velocity() -> Vector3:
 	return forward() * lerpf(4.8, 10.0, power) + Vector3.UP * lerpf(2.5, 4.5, power)
 
 func throw_seed() -> void:
-	if not held: return
-	ball.freeze = false
-	ball.collision_layer = 2
-	ball.collision_mask = 1
-	ball.linear_velocity = launch_velocity()
-	ball.angular_velocity = Vector3(3, 1, 2)
-	held = false
+	if not held or not player.action.is_empty(): return
+	throw_velocity = launch_velocity()
+	player.visual.rotation.y = atan2(forward().x, forward().z)
 	charging = false
-	player.carrying = false
-	lost_time = 0
-	sound.chime(329.63)
+	player.action = "throw"
+	player.action_phase = 0
+	action_time = 0
+	action_released = false
+
+func update_action(delta: float) -> void:
+	if player.action.is_empty(): return
+	action_time += delta
+	player.action_phase = minf(1, action_time / ACTION_DURATION)
+	if player.action == "pickup" and action_time >= 0.3:
+		held = true
+		player.carrying = true
+	player.apply_joint_poses()
+	if player.action == "throw" and action_time >= THROW_RELEASE and not action_released:
+		ball.global_position = player.fruit_position()
+		ball.freeze = false
+		ball.collision_layer = 2
+		ball.collision_mask = 1
+		ball.linear_velocity = throw_velocity
+		ball.angular_velocity = Vector3(3, 1, 2)
+		held = false
+		player.carrying = false
+		action_released = true
+		lost_time = 0
+		sound.chime(329.63)
+	if action_time >= ACTION_DURATION:
+		player.action = ""
+		player.action_phase = 0
 
 func recover() -> void:
+	player.action = ""
 	held = false
 	charging = false
 	player.carrying = false
@@ -236,12 +269,15 @@ func _physics_process(delta: float) -> void:
 		player.position = Vector3(0, 0.2, 5.7)
 		player.velocity = Vector3.ZERO
 		if held: recover()
+	if not player.action.is_empty(): player.drive = Vector3.ZERO
+	update_action(delta)
 	if held:
-		player.visual.rotation.y = lerp_angle(player.visual.rotation.y, atan2(forward().x, forward().z), delta * 10)
-		ball.position = player.position + Vector3(0, 1.38, 0) + forward() * 0.67
+		if player.action != "throw":
+			player.visual.rotation.y = lerp_angle(player.visual.rotation.y, atan2(forward().x, forward().z), delta * 10)
+		ball.global_position = player.fruit_position()
 		ball.rotation = Vector3(0, elapsed * 0.5, 0)
 		if charging: power = minf(1.0, power + delta * 0.65)
-	if stage == Stage.SEED and not held:
+	if stage == Stage.SEED and not held and player.action != "pickup":
 		lost_time += delta
 		var near_bowl := Vector2(ball.position.x - world.bowl.x, ball.position.z - world.bowl.z).length() < 0.8
 		if near_bowl and ball.position.y > 0.3 and ball.position.y < 1.2: planted()
@@ -256,7 +292,7 @@ func _physics_process(delta: float) -> void:
 			sound.chime(783.99)
 	environment.background_color = Color("20212b").lerp(Color("b9d2d1"), bloom)
 	var focus := player.position + Vector3(0, 0.7, -1)
-	var offset := Vector3(0, 8.5, 12.5).rotated(Vector3.UP, yaw)
+	var offset := Vector3(0, sin(pitch) * 15.1, cos(pitch) * 15.1).rotated(Vector3.UP, yaw)
 	camera.position = camera.position.lerp(focus + offset, 1.0 - exp(-delta * 4))
 	camera.look_at(focus)
 	if screenshot_mode.begins_with("characters"):
@@ -269,23 +305,25 @@ func _physics_process(delta: float) -> void:
 		capturing = true
 		capture.call_deferred(screenshot_mode)
 
+func _process(_delta: float) -> void:
+	if held and not pause: ball.global_position = player.fruit_position()
+	if not pause and stage != Stage.TITLE: update_hud()
+
 func update_hud() -> void:
-	hud.prompt.text = ""
 	if screenshot_mode.begins_with("characters"): return
 	if stage == Stage.TITLE: return
-	if held: hud.prompt.text = "Release to throw" if charging else "Hold left click to aim  ·  Right-drag to turn the camera"
-	elif stage == Stage.SEED and player.position.distance_to(ball.position) < 2: hud.prompt.text = "E  Pick up the little seed"
-	elif player.position.distance_to(friend.position) < 2.7: hud.prompt.text = "E  Talk to Ari"
+	hud.place_speech(camera, friend.global_position + Vector3.UP * 2.9)
 	hud.charge.visible = charging
 	hud.charge.value = power * 100
 
 func update_aim() -> void:
+	var origin := player.throw_origin(THROW_RELEASE / ACTION_DURATION) if held and charging else ball.position
 	for i in range(aim_dots.size()):
 		var dot := aim_dots[i]
 		dot.visible = held and charging
 		if dot.visible:
 			var t := (i + 1) * 0.08
-			dot.position = ball.position + launch_velocity() * t + Vector3.DOWN * 4.9 * t * t
+			dot.position = origin + launch_velocity() * t + Vector3.DOWN * 4.9 * t * t
 			if dot.position.y < 0.1: dot.visible = false
 
 func capture(view: String) -> void:
@@ -320,20 +358,23 @@ func self_test() -> void:
 		player.position = Vector3(-1.4, 0.1, 4.5)
 	if test_tick == 20:
 		interact()
-		assert(held, "nearby seed can be picked up")
-		player.position = Vector3(0, 0.1, -1.5)
-	if test_tick == 30:
+	if test_tick == 65:
+		assert(held and player.action.is_empty(), "pickup reaches carry pose")
+		player.position = Vector3(0, 0.1, 0.0)
+	if test_tick == 75:
 		power = 0
 		throw_seed()
-		assert(not held and not ball.freeze, "throw releases actual rigid body")
-	if test_tick == 110:
+		assert(held and ball.freeze, "fruit stays held during windup")
+	if test_tick == 103:
+		assert(not held and not ball.freeze, "throw keyframe releases actual rigid body")
+	if test_tick == 170:
 		assert(stage != Stage.SEED, "physics throw reaches the receiving bowl")
-	if test_tick == 380:
+	if test_tick == 440:
 		assert(stage == Stage.GARDEN and world.bloom == 1, "puzzle completes the full garden reveal")
 		player.position.y = -6
-	if test_tick == 382:
+	if test_tick == 442:
 		assert(player.position.y > -1, "fall recovery restores the player")
-		print("SELF_TEST_PASS pickup, physical throw, bowl trigger, reveal and fall recovery")
+		print("SELF_TEST_PASS pickup, timed physical throw, bowl trigger, reveal and fall recovery")
 		finish_run()
 
 func finish_run() -> void:

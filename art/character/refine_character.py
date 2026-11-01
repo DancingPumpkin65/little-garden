@@ -60,6 +60,8 @@ def sculpt_body():
                     p.y+=.008*math.sin(a*2+row*.9)
                     p.z+=.010*math.sin(a+row*.8)
                     p.x+=side*.007*math.cos(a*2+row)
+                # Keep a narrow armpit gap so the voxel union does not weld forearms to ribs.
+                p.x+=side*.11*(1-smooth(1.37,1.73,p.y))
                 v.co=blender(p)
         elif name.startswith('Leg '):
             side=-1 if name.endswith('L') else 1
@@ -79,6 +81,7 @@ def sculpt_body():
                 row,i=divmod(v.index,14);a=i*math.tau/14
                 if row not in (0,7):h+=.004*math.sin(a*2.4+row)
                 p.x=x*math.cos(angle)-h*math.sin(angle);p.y=x*math.sin(angle)+h*math.cos(angle)
+                p.x+=side*.12
                 v.co=blender(p+center)
         elif name.startswith('Foot '):
             side=-1 if name.endswith('L') else 1;center=Vector((side*.20,.115,.085))
@@ -89,6 +92,18 @@ def sculpt_body():
                 p+=center;p.y=max(.008,p.y);v.co=blender(p)
         for polygon in obj.data.polygons:polygon.use_smooth=False
         obj.data.update()
+
+def open_wrist_gap():
+    rig=bpy.data.objects['CharacterRig']
+    bpy.context.view_layer.objects.active=rig
+    bpy.ops.object.mode_set(mode='EDIT')
+    for side,label in [(-1,'L'),(1,'R')]:
+        rig.data.edit_bones['arm_'+label].tail.x+=side*.06
+        forearm=rig.data.edit_bones['forearm_'+label]
+        forearm.head.x+=side*.06;forearm.tail.x+=side*.12
+        hand=rig.data.edit_bones['hand_'+label]
+        hand.head.x+=side*.12;hand.tail.x+=side*.12
+    bpy.ops.object.mode_set(mode='OBJECT')
 
 def unify_body():
     # Existing disconnected shells cannot form organic joints through vertex offsets alone.
@@ -204,10 +219,10 @@ def face_features(variant,black):
         for i in range(32):
             a=i*math.tau/32
             ex=math.cos(a);ey=math.sin(a)
-            if variant=='girl':ex=math.copysign(abs(ex)**.74,ex);ey=math.copysign(abs(ey)**.74,ey)
+            ex=math.copysign(abs(ex)**(.74 if variant=='girl' else .5),ex);ey=math.copysign(abs(ey)**(.74 if variant=='girl' else .5),ey)
             for j in range(6):
                 b=j*math.tau/6;r=.104+.008*math.cos(b)
-                x=cx+r*ex;y=cy+r*ey*(.94 if variant=='girl' else 1)
+                x=cx+r*ex;y=cy+r*ey*(.94 if variant=='girl' else .80)
                 verts.append(face_point(x,y,.024+.008*math.sin(b)))
         for i in range(32):
             for j in range(6):faces.append((i*6+j,i*6+(j+1)%6,((i+1)%32)*6+(j+1)%6,((i+1)%32)*6+j))
@@ -271,7 +286,7 @@ def export_runtime(variant,parts,rig):
 reports=[]
 for variant in ['girl','guy']:
     bpy.ops.wm.open_mainfile(filepath=str(BASE))
-    sculpt_body();unify_body();refine_head();delete_accessories()
+    sculpt_body();open_wrist_gap();unify_body();refine_head();delete_accessories()
     black=bpy.data.materials['Matte charcoal'];head_cover(variant,black);face_features(variant,black)
     parts=[o for o in bpy.data.objects if o.type=='MESH'];rig=bpy.data.objects['CharacterRig']
     scene=bpy.context.scene;scene.cycles.samples=16;scene.render.film_transparent=True

@@ -1,10 +1,10 @@
 # A little garden
 
-A standalone Godot 4.7.2 playable scene, separate from Bewerbung. Original low-poly 3D characters and a white-to-colour garden, inspired by the broad visual approach of Bryson McBee’s birthday game. No assets from his game are used.
+A standalone Godot 4.7.2 playable scene, separate from Bewerbung. Original low-poly 3D characters and a white-to-colour garden, inspired by the broad visual approach of Bryson McBeeâ€™s birthday game. No assets from his game are used.
 
 Double-click **Play.cmd** to play. **Open editor.cmd** opens the project for editing. These launchers use the portable Godot runtime installed at `C:/Users/ouass/.local/share/godot-4.7.2`.
 
-Move with WASD or arrows, run with Shift, jump with Space. Approach the golden seed and press E. Hold left mouse to see the trajectory and increase throw strength; release to throw. Hold right mouse and drag to turn the camera. Stand a few steps from the bowl to make a gentle throw. Press R to return the seed to its starting position. Escape opens pause, mute and restart. Falls and lost throws recover automatically.
+Move with WASD or arrows, run with Shift, jump with Space. Approach the golden seed and press E. Hold left mouse to see the trajectory and increase throw strength; release to throw. Move the mouse to orbit and tilt the camera. Escape frees the cursor for the menu. Stand a few steps from the bowl to make a gentle throw. Press R to return the seed to its starting position. Escape opens pause, mute and restart. Falls and lost throws recover automatically.
 
 Plant the seed in the stone bowl to restore the garden, then explore or press E near Ari to talk. This is a short complete scene, not a full game.
 
@@ -16,7 +16,7 @@ Plant the seed in the stone bowl to restore the garden, then explore or press E 
 - `art/character/`: editable Blender source, deterministic build script and modeling workflow.
 - `assets/characters/reference_character.glb`: runtime player mesh and 15-bone armature.
 - `scripts/garden.gd`: island, vegetation and reveal.
-- `scripts/interface.gd`: title, dialogue, controls and pause menu.
+- `scripts/interface.gd`: title, character speech bubbles and pause menu.
 - `scripts/sound.gd`: original synthesized ambience and chimes.
 - `scripts/shapes.gd`: shared mesh construction helpers.
 
@@ -28,4 +28,6 @@ The player is modeled in Blender and imported as GLB. The companion also uses a 
 
 Character QA follows `references/README.md`, using screenshots of the original game and equal-height front/rear/bent-pose comparisons.
 
-Imported-model checks: run `--headless --path . --quit-after 60 --script tests/imported_character.gd`. The fallback geometry check is `tests/character_shape.gd`. `tests/imported_character_render.gd` measures 240 uncapped rendered frames after warmup in the garden scene; a local AMD Radeon compatibility-renderer run with both refined models averaged 2.75 ms per frame. This is a small local benchmark, not a frame-rate guarantee on other machines.
+Imported-model checks: run `--headless --path . --quit-after 60 --script tests/imported_character.gd`. The fallback geometry check is `tests/character_shape.gd`. `tests/imported_character_render.gd` measures 240 uncapped rendered frames after warmup in the garden scene; a local AMD Radeon compatibility-renderer run with both refined models averaged 2.45 ms per frame. This is a small local benchmark, not a frame-rate guarantee on other machines.
+
+Interaction regression: run `--headless --fixed-fps 60 --path . --quit-after 180 --script tests/fruit_attachment.gd`. This checks the reach, two-handed grip, camera yaw/pitch, retained fruit during windup, release keyframe and follow-through. `tests/capture_interactions.gd` captures those poses and the speech bubble in the native renderer. Dialogue follows Ari in a white bubble with a black shadow; bottom control hints are removed. The fruit follows the imported wrist bones and releases 0.4 seconds into the 0.7-second throw. The trajectory preview uses that release pose.

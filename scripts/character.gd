@@ -4,6 +4,8 @@ extends "res://scripts/legacy/procedural_character.gd"
 const MODEL := preload("res://assets/characters/reference_character.glb")
 const COMPANION_MODEL := preload("res://assets/characters/companion_character.glb")
 var imported_skeleton: Skeleton3D
+var action := ""
+var action_phase := 0.0
 var model_root: Node3D
 var bone_ids: Dictionary[StringName, int] = {}
 var bone_bases: Dictionary[StringName, Basis] = {}
@@ -63,6 +65,34 @@ func pose_bone(name: StringName, axis: Vector3, angle: float, spread_delta: floa
 	imported_skeleton.set_bone_pose_rotation(bone_ids[name], rest_rotations[name] * Quaternion(spread_axis, spread_delta) * Quaternion(local_axis, angle))
 
 func apply_joint_poses() -> void:
+	visual.rotation.x = 0
+	if carrying and imported_skeleton != null:
+		left_arm.rotation.z = 0.6
+		right_arm.rotation.z = -0.6
+	if not action.is_empty():
+		var shoulder := -0.95
+		var elbow := -0.6
+		if action == "pickup":
+			var reach := sin(action_phase * PI)
+			visual.position.y = -0.42 * reach
+			visual.rotation.x = -0.22 * reach
+			left_leg.rotation.x = -0.28 * reach
+			right_leg.rotation.x = -0.28 * reach
+			for joint in knees: joint.rotation.x = 0.56 * reach
+			shoulder = lerpf(-0.45, -0.95, smoothstep(0.25, 1.0, action_phase))
+			elbow = lerpf(-0.1, -0.6, smoothstep(0.25, 1.0, action_phase))
+		elif action == "throw":
+			if action_phase < 0.45:
+				shoulder = lerpf(-0.95, -2.35, smoothstep(0.0, 0.45, action_phase))
+				elbow = lerpf(-0.6, -1.05, smoothstep(0.0, 0.45, action_phase))
+			else:
+				shoulder = lerpf(-2.35, -0.25, smoothstep(0.45, 1.0, action_phase))
+				elbow = lerpf(-1.05, -0.12, smoothstep(0.45, 0.75, action_phase))
+		left_arm.rotation.x = shoulder
+		right_arm.rotation.x = shoulder
+		left_arm.rotation.z = 0.6 if imported_skeleton != null else -0.13
+		right_arm.rotation.z = -left_arm.rotation.z
+		for joint in elbows: joint.rotation.x = elbow
 	if imported_skeleton == null:
 		super.apply_joint_poses()
 		return
@@ -75,3 +105,49 @@ func apply_joint_poses() -> void:
 	pose_bone(&"calf_L", Vector3.RIGHT, knees[0].rotation.x)
 	pose_bone(&"calf_R", Vector3.RIGHT, knees[1].rotation.x)
 	pose_bone(&"head", Vector3.BACK, head.rotation.z)
+	if carrying or action == "pickup":
+		# Wrist x is sinusoidal around the shoulder. Solve that arc to keep
+		# both mittens on the fruit throughout the reach and overhand windup.
+		var samples: Array[float] = []
+		for spread in [0.0, PI / 2, PI]:
+			pose_bone(&"arm_L", Vector3.RIGHT, left_arm.rotation.x, spread)
+			imported_skeleton.force_update_all_bone_transforms()
+			samples.append(imported_skeleton.get_bone_global_pose(bone_ids[&"hand_L"]).origin.x)
+		var center := (samples[0] + samples[2]) * 0.5
+		var a := samples[0] - center
+		var b := samples[1] - center
+		var radius := Vector2(a, b).length()
+		var phase := atan2(b, a)
+		var arc := acos(clampf((-0.26 - center) / maxf(radius, 0.001), -1, 1))
+		var first := wrapf(phase + arc, -PI, PI)
+		var second := wrapf(phase - arc, -PI, PI)
+		var spread := first if absf(first) < absf(second) else second
+		pose_bone(&"arm_L", Vector3.RIGHT, left_arm.rotation.x, spread)
+		pose_bone(&"arm_R", Vector3.RIGHT, right_arm.rotation.x, -spread)
+
+func fruit_position() -> Vector3:
+	if imported_skeleton != null:
+		imported_skeleton.force_update_all_bone_transforms()
+		var left := imported_skeleton.get_bone_global_pose(bone_ids[&"hand_L"]).origin
+		var right := imported_skeleton.get_bone_global_pose(bone_ids[&"hand_R"]).origin
+		return imported_skeleton.global_transform * ((left + right) * 0.5)
+	return global_position + Vector3.UP * 1.38 + facing() * 0.67
+
+# Preview the release pose without changing the visible carry pose.
+func throw_origin(phase: float) -> Vector3:
+	var saved_action := action
+	var saved_phase := action_phase
+	var arm_angles := [left_arm.rotation, right_arm.rotation]
+	var elbow_angles := [elbows[0].rotation, elbows[1].rotation]
+	action = "throw"
+	action_phase = phase
+	apply_joint_poses()
+	var point := fruit_position()
+	action = saved_action
+	action_phase = saved_phase
+	left_arm.rotation = arm_angles[0]
+	right_arm.rotation = arm_angles[1]
+	elbows[0].rotation = elbow_angles[0]
+	elbows[1].rotation = elbow_angles[1]
+	apply_joint_poses()
+	return point
