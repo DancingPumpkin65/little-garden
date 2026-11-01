@@ -45,3 +45,22 @@ static func collider(parent: Node3D, at: Vector3, size: Vector3) -> StaticBody3D
 	body.add_child(collision)
 	parent.add_child(body)
 	return body
+
+# Elliptical cross-sections form one connected surface instead of stacked balls.
+static func profile(parent: Node3D, sections: Array[Vector3], mat: Material) -> MeshInstance3D:
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var segments := 20
+	for row in range(sections.size() - 1):
+		var low := sections[row]
+		var high := sections[row + 1]
+		for i in range(segments):
+			var a := i * TAU / segments
+			var b := (i + 1) * TAU / segments
+			var points := [Vector3(cos(a) * low.y, low.x, sin(a) * low.z), Vector3(cos(b) * low.y, low.x, sin(b) * low.z), Vector3(cos(b) * high.y, high.x, sin(b) * high.z), Vector3(cos(a) * high.y, high.x, sin(a) * high.z)]
+			for index in [0, 1, 2, 0, 2, 3]:
+				surface.set_smooth_group(0)
+				surface.add_vertex(points[index])
+	surface.index()
+	surface.generate_normals()
+	return mesh(parent, surface.commit(), Vector3.ZERO, mat)

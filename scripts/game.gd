@@ -170,7 +170,7 @@ func forward() -> Vector3:
 	return Vector3(-sin(yaw), 0, -cos(yaw))
 
 func launch_velocity() -> Vector3:
-	return forward() * lerpf(4.8, 10.0, power) + Vector3.UP * lerpf(3.0, 5.0, power)
+	return forward() * lerpf(4.8, 10.0, power) + Vector3.UP * lerpf(2.5, 4.5, power)
 
 func throw_seed() -> void:
 	if not held: return
@@ -230,7 +230,7 @@ func _physics_process(delta: float) -> void:
 		if held: recover()
 	if held:
 		player.visual.rotation.y = lerp_angle(player.visual.rotation.y, atan2(forward().x, forward().z), delta * 10)
-		ball.position = player.position + Vector3(0, 1.1, 0) + forward() * 0.67
+		ball.position = player.position + Vector3(0, 1.55, 0) + forward() * 0.67
 		ball.rotation = Vector3(0, elapsed * 0.5, 0)
 		if charging: power = minf(1.0, power + delta * 0.65)
 	if stage == Stage.SEED and not held:
@@ -252,8 +252,8 @@ func _physics_process(delta: float) -> void:
 	camera.position = camera.position.lerp(focus + offset, 1.0 - exp(-delta * 4))
 	camera.look_at(focus)
 	if screenshot_mode == "characters":
-		camera.position = Vector3(0, 2.6, 6.8)
-		camera.look_at(Vector3(0, 1.2, 2))
+		camera.position = Vector3(0, 2.9, 7.6)
+		camera.look_at(Vector3(0, 1.4, 2))
 	update_hud()
 	update_aim()
 	if testing: self_test()
