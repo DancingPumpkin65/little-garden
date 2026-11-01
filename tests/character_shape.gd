@@ -16,6 +16,8 @@ func check() -> void:
 			radii[height] = radii.get(height, Vector2.ZERO).max(radius)
 		var heights := radii.keys()
 		heights.sort()
+		assert(radii[heights[0]].length() < 0.01 and radii[heights[-1]].length() < 0.01, "limb ends must close with rounded caps instead of open cut edges")
+		heights = heights.filter(func(height: float) -> bool: return height >= (-1.02 if limb == character.left_leg else -0.84) and height <= -0.10)
 		for i in range(1, heights.size()):
 			assert(radii[heights[i]].x >= radii[heights[i - 1]].x - 0.001, "limb width must taper steadily from hip/shoulder to ankle/wrist")
 			assert(radii[heights[i]].y >= radii[heights[i - 1]].y - 0.001, "limb depth must taper steadily")

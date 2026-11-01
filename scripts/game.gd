@@ -84,6 +84,7 @@ func _ready() -> void:
 	if testing or not screenshot_mode.is_empty():
 		if screenshot_mode != "title": start()
 		if screenshot_mode.begins_with("characters"):
+			world.hide()
 			player.position = Vector3(-0.8, 0.05, 2.0)
 			friend.position = Vector3(0.8, 0.05, 2.0)
 			friend.rotation.y = 0
