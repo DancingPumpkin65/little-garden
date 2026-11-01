@@ -31,7 +31,7 @@ func _ready() -> void:
 	var skin := Shapes.material(Color("f2f2f2"))
 	var ink := Shapes.material(Color("181818"))
 	var coat := Shapes.material(Color("d6d6d6"))
-	var trouser := Shapes.material(Color("cecece"))
+	var trouser := Shapes.material(Color("d6d6d6"))
 	var boots := Shapes.material(Color("c8c8c8"))
 	# A quiet torso silhouette and steadily tapered limbs match the reference body.
 	Shapes.profile(visual, [Vector3(1.26, 0.001, 0.001), Vector3(1.26, 0.28, 0.16), Vector3(1.267, 0.303, 0.183), Vector3(1.278, 0.322, 0.202), Vector3(1.298, 0.335, 0.215), Vector3(1.32, 0.34, 0.22), Vector3(1.34, 0.34, 0.22), Vector3(1.52, 0.34, 0.22), Vector3(1.72, 0.34, 0.21), Vector3(1.84, 0.345, 0.205), Vector3(1.90, 0.334, 0.198), Vector3(1.95, 0.307, 0.183), Vector3(1.99, 0.267, 0.164), Vector3(2.02, 0.214, 0.141), Vector3(2.04, 0.15, 0.11), Vector3(2.045, 0.001, 0.001)], coat)
@@ -64,7 +64,7 @@ func _ready() -> void:
 		var arm: Node3D = pair[0]
 		var side: float = pair[1]
 		visual.add_child(arm)
-		arm.position = Vector3(side * 0.35, 1.91, 0)
+		arm.position = Vector3(side * 0.29, 1.91, 0)
 		var arm_mesh := Shapes.profile(arm, [Vector3(-0.91, 0.001, 0.001), Vector3(-0.902, 0.05, 0.05), Vector3(-0.885, 0.087, 0.086), Vector3(-0.862, 0.106, 0.104), Vector3(-0.84, 0.112, 0.11), Vector3(-0.68, 0.12, 0.117), Vector3(-0.54, 0.127, 0.123), Vector3(-0.45, 0.132, 0.127), Vector3(-0.38, 0.136, 0.13), Vector3(-0.24, 0.143, 0.136), Vector3(-0.10, 0.151, 0.143), Vector3(-0.06, 0.147, 0.14), Vector3(-0.02, 0.128, 0.123), Vector3(0.015, 0.095, 0.092), Vector3(0.038, 0.052, 0.05), Vector3(0.047, 0.001, 0.001)], coat, 0.43)
 		arm_rigs.append(arm_mesh.get_node(arm_mesh.skeleton) as Skeleton3D)
 		var elbow := Node3D.new()
@@ -76,8 +76,10 @@ func _ready() -> void:
 		var leg: Node3D = pair[0]
 		var side: float = pair[1]
 		visual.add_child(leg)
-		leg.position = Vector3(side * 0.21, 1.27, 0)
-		var leg_mesh := Shapes.profile(leg, [Vector3(-1.125, 0.001, 0.001), Vector3(-1.12, 0.055, 0.06), Vector3(-1.105, 0.095, 0.103), Vector3(-1.08, 0.118, 0.126), Vector3(-1.05, 0.126, 0.134), Vector3(-0.90, 0.134, 0.142), Vector3(-0.75, 0.142, 0.15), Vector3(-0.62, 0.149, 0.157), Vector3(-0.54, 0.153, 0.161), Vector3(-0.46, 0.157, 0.165), Vector3(-0.30, 0.165, 0.173), Vector3(-0.10, 0.175, 0.183), Vector3(-0.04, 0.178, 0.186), Vector3(0.01, 0.168, 0.176), Vector3(0.055, 0.137, 0.145), Vector3(0.085, 0.087, 0.093), Vector3(0.10, 0.001, 0.001)], trouser, 0.55)
+		leg.position = Vector3(side * 0.165, 1.27, 0)
+		leg.rotation.z = side * 0.055
+		leg.rotation.y = side * 0.04
+		var leg_mesh := Shapes.profile(leg, [Vector3(-1.125, 0.001, 0.001), Vector3(-1.12, 0.055, 0.06), Vector3(-1.105, 0.095, 0.103), Vector3(-1.08, 0.118, 0.126), Vector3(-1.05, 0.126, 0.134), Vector3(-0.90, 0.134, 0.142), Vector3(-0.75, 0.142, 0.15), Vector3(-0.62, 0.149, 0.157), Vector3(-0.54, 0.153, 0.161), Vector3(-0.46, 0.157, 0.165), Vector3(-0.30, 0.165, 0.173), Vector3(-0.10, 0.175, 0.183), Vector3(0.02, 0.18, 0.188), Vector3(0.08, 0.178, 0.186), Vector3(0.14, 0.15, 0.157), Vector3(0.18, 0.095, 0.101), Vector3(0.20, 0.001, 0.001)], trouser, 0.55)
 		leg_rigs.append(leg_mesh.get_node(leg_mesh.skeleton) as Skeleton3D)
 		var knee := Node3D.new()
 		leg.add_child(knee)
