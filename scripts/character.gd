@@ -2,6 +2,7 @@ class_name GardenCharacter
 extends "res://scripts/legacy/procedural_character.gd"
 
 const MODEL := preload("res://assets/characters/reference_character.glb")
+const COMPANION_MODEL := preload("res://assets/characters/companion_character.glb")
 var imported_skeleton: Skeleton3D
 var model_root: Node3D
 var bone_ids: Dictionary[StringName, int] = {}
@@ -9,8 +10,8 @@ var bone_bases: Dictionary[StringName, Basis] = {}
 var rest_rotations: Dictionary[StringName, Quaternion] = {}
 
 func _ready() -> void:
-	# The companion and explicit fallback keep the previous complete implementation.
-	if npc or "--procedural-character" in OS.get_cmdline_user_args():
+	# Explicit fallback keeps the previous complete implementation.
+	if "--procedural-character" in OS.get_cmdline_user_args():
 		super._ready()
 		return
 	var collision := CollisionShape3D.new()
@@ -21,7 +22,7 @@ func _ready() -> void:
 	collision.position.y = 1.275
 	add_child(collision)
 	add_child(visual)
-	model_root = MODEL.instantiate()
+	model_root = (COMPANION_MODEL if npc else MODEL).instantiate()
 	visual.add_child(model_root)
 	var skeletons := model_root.find_children("*", "Skeleton3D", true, false)
 	assert(skeletons.size() == 1, "character GLB must contain one armature")
@@ -50,6 +51,10 @@ func _ready() -> void:
 	left_arm.rotation.z = -0.45
 	right_arm.rotation.z = 0.45
 	apply_joint_poses()
+
+func _physics_process(delta: float) -> void:
+	super._physics_process(delta)
+	if npc and imported_skeleton != null: apply_joint_poses()
 
 # Blender bones use different local axes; convert the existing body-space rotations.
 func pose_bone(name: StringName, axis: Vector3, angle: float, spread_delta: float = 0.0) -> void:

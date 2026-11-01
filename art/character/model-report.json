@@ -1,7 +1,20 @@
-{
-  "stage": "rigged",
-  "bones": 15,
-  "triangles": 3658,
-  "materials": 2,
-  "textures": 0
-}
+[
+  {
+    "variant": "girl",
+    "triangles": 4072,
+    "bones": 15,
+    "materials": 2,
+    "textures": 0,
+    "body_components": 1,
+    "body_nonmanifold_edges": 0
+  },
+  {
+    "variant": "guy",
+    "triangles": 4020,
+    "bones": 15,
+    "materials": 2,
+    "textures": 0,
+    "body_components": 1,
+    "body_nonmanifold_edges": 0
+  }
+]

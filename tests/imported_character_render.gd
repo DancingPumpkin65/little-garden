@@ -22,7 +22,7 @@ func measure() -> void:
 	if frame > 60: draw_calls += Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
 	if frame == 300:
 		var milliseconds := (Time.get_ticks_usec() - started) / 1000.0 / 240
-		var report := {"renderer": RenderingServer.get_video_adapter_name(), "scene": "full garden, imported player animating, procedural companion", "frames": 240, "average_frame_ms": milliseconds, "average_fps": 1000.0 / milliseconds, "average_scene_draw_calls": draw_calls / 240.0}
+		var report := {"renderer": RenderingServer.get_video_adapter_name(), "scene": "full garden, two imported characters, player walking/carrying", "frames": 240, "average_frame_ms": milliseconds, "average_fps": 1000.0 / milliseconds, "average_scene_draw_calls": draw_calls / 240.0}
 		var output := FileAccess.open("res://artifacts/character-performance.json", FileAccess.WRITE)
 		output.store_string(JSON.stringify(report, "  "))
 		print("CHARACTER_RENDER_BENCHMARK ", report)

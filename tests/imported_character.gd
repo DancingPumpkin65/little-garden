@@ -4,9 +4,16 @@ func _initialize() -> void:
 	check.call_deferred()
 
 func check() -> void:
+	verify(false)
+	verify(true)
+	quit()
+
+func verify(companion: bool) -> void:
 	var character := GardenCharacter.new()
+	character.npc = companion
 	root.add_child(character)
 	character.set_physics_process(false)
+	assert(character.model_root.scene_file_path.ends_with("companion_character.glb" if companion else "reference_character.glb"), "each character must load its own face variant")
 	assert(character.imported_skeleton != null, "default player must instantiate the Blender armature")
 	var skeleton := character.imported_skeleton
 	assert(skeleton.get_bone_count() == 15, "export retains the full body/head/limb armature")
@@ -47,5 +54,5 @@ func check() -> void:
 	character.animate_pose(1.0, 0.0)
 	skeleton.force_update_all_bone_transforms()
 	assert(skeleton.get_bone_global_pose(hand).origin.distance_to(resting_hand) < 0.001, "carrying/walking/jumping return to the original idle proportions")
-	print("IMPORTED_CHARACTER_PASS ", triangles, " triangles, normalized weights, 15 bones, idle/walk/jump/carry transitions")
-	quit()
+	print("IMPORTED_CHARACTER_PASS ", "guy" if companion else "girl", " ", triangles, " triangles, normalized weights, 15 bones, idle/walk/jump/carry transitions")
+	character.queue_free()
