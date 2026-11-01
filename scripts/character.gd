@@ -27,11 +27,11 @@ func _ready() -> void:
 	collision.position.y = 1.35
 	add_child(collision)
 	add_child(visual)
-	var skin := Shapes.material(Color("eeece5") if npc else Color("efa95f"))
-	var ink := Shapes.material(Color("29293a"))
-	var coat := Shapes.material(Color("efad7c") if npc else Color("f2dfb8"))
-	var trouser := Shapes.material(Color("506273") if npc else Color("655080"))
-	var boots := Shapes.material(Color("815438"))
+	var skin := Shapes.material(Color("f2f2f2"))
+	var ink := Shapes.material(Color("181818"))
+	var coat := Shapes.material(Color("d6d6d6"))
+	var trouser := Shapes.material(Color("cecece"))
+	var boots := Shapes.material(Color("c8c8c8"))
 	# The torso has a shoulder line, waist and hem; the hip is a separate volume.
 	Shapes.profile(visual, [Vector3(1.17, 0.01, 0.01), Vector3(1.18, 0.37, 0.22), Vector3(1.20, 0.37, 0.22), Vector3(1.34, 0.34, 0.22), Vector3(1.52, 0.30, 0.20), Vector3(1.72, 0.30, 0.20), Vector3(1.88, 0.35, 0.20), Vector3(1.98, 0.29, 0.17), Vector3(2.02, 0.13, 0.12)], coat)
 	Shapes.profile(visual, [Vector3(1.12, 0.22, 0.15), Vector3(1.25, 0.29, 0.18), Vector3(1.35, 0.25, 0.16)], trouser)
@@ -52,9 +52,9 @@ func _ready() -> void:
 		Shapes.sphere(head, Vector3(0, -0.065, 0.17), Vector3(0.77, 0.76, 0.64), skin)
 	for side in [-1.0, 1.0]:
 		Shapes.sphere(head, Vector3(side * 0.18, -0.02, 0.477), Vector3(0.08, 0.11, 0.035), ink)
-		Shapes.sphere(head, Vector3(side * 0.25, -0.15, 0.44), Vector3(0.1, 0.045, 0.025), Shapes.material(Color("e59c7d")))
+		Shapes.sphere(head, Vector3(side * 0.25, -0.15, 0.44), Vector3(0.1, 0.045, 0.025), Shapes.material(Color("eeeeee")))
 	Shapes.sphere(head, Vector3(0, -0.13, 0.49), Vector3(0.09, 0.075, 0.08), skin)
-	Shapes.sphere(head, Vector3(0, -0.24, 0.455), Vector3(0.09, 0.025, 0.025), Shapes.material(Color("a75f4f")))
+	Shapes.sphere(head, Vector3(0, -0.24, 0.455), Vector3(0.09, 0.025, 0.025), Shapes.material(Color("555555")))
 	if not npc: build_glasses(ink)
 	if npc:
 		for side in [-1.0, 1.0]:
@@ -101,8 +101,8 @@ func build_glasses(frame_material: Material) -> void:
 	Shapes.box(head, Vector3(0, 0.0, 0.505), Vector3(0.1, 0.035, 0.035), frame_material).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 func build_hijab() -> void:
-	var cloth := Shapes.material(Color("9166b1"))
-	var folds := Shapes.material(Color("7f569e"))
+	var cloth := Shapes.material(Color("202020"))
+	var folds := Shapes.material(Color("343434"))
 	Shapes.sphere(head, Vector3(0, 0.05, -0.08), Vector3(1.04, 1.07, 0.94), cloth)
 	# One continuous hood silhouette, with a diagonal fold above the forehead.
 	var fold := Shapes.sphere(head, Vector3(-0.18, 0.28, 0.2), Vector3(0.6, 0.19, 0.27), cloth)

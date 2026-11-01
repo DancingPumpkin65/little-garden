@@ -55,13 +55,13 @@ func _ready() -> void:
 	environment.background_mode = Environment.BG_COLOR
 	environment.background_color = Color("20212b")
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("dce2f5")
+	environment.ambient_light_color = Color.WHITE
 	environment.ambient_light_energy = 0.32
 	environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	env_node.environment = environment
 	add_child(env_node)
 	sun.rotation_degrees = Vector3(-48, -32, 0)
-	sun.light_color = Color("fff1d9")
+	sun.light_color = Color.WHITE
 	sun.light_energy = 0.8
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 45
