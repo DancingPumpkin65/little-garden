@@ -47,10 +47,9 @@ static func collider(parent: Node3D, at: Vector3, size: Vector3) -> StaticBody3D
 	return body
 
 # Elliptical cross-sections form one connected surface instead of stacked balls.
-static func profile(parent: Node3D, sections: Array[Vector3], mat: Material, joint: float = INF) -> MeshInstance3D:
+static func profile(parent: Node3D, sections: Array[Vector3], mat: Material, joint: float = INF, segments: int = 20, flat: bool = false) -> MeshInstance3D:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var segments := 20
 	for row in range(sections.size() - 1):
 		var low := sections[row]
 		var high := sections[row + 1]
@@ -59,7 +58,7 @@ static func profile(parent: Node3D, sections: Array[Vector3], mat: Material, joi
 			var b := (i + 1) * TAU / segments
 			var points := [Vector3(cos(a) * low.y, low.x, sin(a) * low.z), Vector3(cos(b) * low.y, low.x, sin(b) * low.z), Vector3(cos(b) * high.y, high.x, sin(b) * high.z), Vector3(cos(a) * high.y, high.x, sin(a) * high.z)]
 			for index in [0, 1, 2, 0, 2, 3]:
-				surface.set_smooth_group(0)
+				surface.set_smooth_group(-1 if flat else 0)
 				if is_finite(joint):
 					var weight := smoothstep(joint - 0.13, joint + 0.13, -points[index].y)
 					surface.set_bones(PackedInt32Array([0, 1, 0, 0]))
@@ -78,4 +77,11 @@ static func profile(parent: Node3D, sections: Array[Vector3], mat: Material, joi
 		skeleton.reset_bone_poses()
 		result.skeleton = result.get_path_to(skeleton)
 		result.skin = skeleton.create_skin_from_rest_transforms()
+	return result
+
+# Sparse latitude rings and flat normals keep these shapes visibly handmade.
+static func faceted(parent: Node3D, at: Vector3, size: Vector3, mat: Material) -> MeshInstance3D:
+	var result := profile(parent, [Vector3(-0.5, 0.001, 0.001), Vector3(-0.43, 0.29, 0.29), Vector3(-0.25, 0.46, 0.46), Vector3(0.12, 0.5, 0.5), Vector3(0.34, 0.39, 0.39), Vector3(0.48, 0.19, 0.19), Vector3(0.51, 0.001, 0.001)], mat, INF, 10, true)
+	result.position = at
+	result.scale = size
 	return result

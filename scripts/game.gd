@@ -85,15 +85,15 @@ func _ready() -> void:
 		if screenshot_mode != "title": start()
 		if screenshot_mode.begins_with("characters"):
 			world.hide()
-			player.position = Vector3(-0.8, 0.05, 2.0)
-			friend.position = Vector3(0.8, 0.05, 2.0)
+			player.position = Vector3(-0.95, 0.05, 2.0)
+			friend.position = Vector3(0.95, 0.05, 2.0)
 			friend.rotation.y = 0
 			if screenshot_mode == "characters-back":
 				player.visual.rotation.y = PI
 				friend.visual.rotation.y = PI
 			if screenshot_mode == "characters-side":
-				player.visual.rotation.y = PI / 2
-				friend.visual.rotation.y = PI / 2
+				player.visual.rotation.y = -PI / 2
+				friend.visual.rotation.y = -PI / 2
 			hud.objective.text = ""
 			hud.speech("")
 			ball.hide()
@@ -238,7 +238,7 @@ func _physics_process(delta: float) -> void:
 		if held: recover()
 	if held:
 		player.visual.rotation.y = lerp_angle(player.visual.rotation.y, atan2(forward().x, forward().z), delta * 10)
-		ball.position = player.position + Vector3(0, 1.55, 0) + forward() * 0.67
+		ball.position = player.position + Vector3(0, 1.38, 0) + forward() * 0.67
 		ball.rotation = Vector3(0, elapsed * 0.5, 0)
 		if charging: power = minf(1.0, power + delta * 0.65)
 	if stage == Stage.SEED and not held:
@@ -296,6 +296,10 @@ func capture(view: String) -> void:
 			player.animate_pose(1.0, 1.0)
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png("res://artifacts/stride-%s.png" % frame)
+	if view == "characters-jump" or view == "characters-carry":
+		player.set_physics_process(false)
+		player.carrying = view == "characters-carry"
+		player.animate_pose(1.0, 0.0, view != "characters-jump")
 	if view == "characters-walk":
 		player.set_physics_process(false)
 		player.gait = PI * 1.5
