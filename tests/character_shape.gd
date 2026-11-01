@@ -4,7 +4,7 @@ func _initialize() -> void:
 	check.call_deferred()
 
 func check() -> void:
-	var character := GardenCharacter.new()
+	var character := ProceduralGardenCharacter.new()
 	root.add_child(character)
 	for limb in [character.left_leg, character.left_arm]:
 		var instance := limb.get_child(0) as MeshInstance3D

@@ -2,3 +2,6 @@
 artifacts/
 *.tmp
 references/*.png
+
+art/character/*.blend1
+references/*.png.import
