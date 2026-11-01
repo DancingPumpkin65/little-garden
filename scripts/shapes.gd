@@ -47,7 +47,7 @@ static func collider(parent: Node3D, at: Vector3, size: Vector3) -> StaticBody3D
 	return body
 
 # Elliptical cross-sections form one connected surface instead of stacked balls.
-static func profile(parent: Node3D, sections: Array[Vector3], mat: Material) -> MeshInstance3D:
+static func profile(parent: Node3D, sections: Array[Vector3], mat: Material, joint: float = INF) -> MeshInstance3D:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var segments := 20
@@ -60,7 +60,22 @@ static func profile(parent: Node3D, sections: Array[Vector3], mat: Material) -> 
 			var points := [Vector3(cos(a) * low.y, low.x, sin(a) * low.z), Vector3(cos(b) * low.y, low.x, sin(b) * low.z), Vector3(cos(b) * high.y, high.x, sin(b) * high.z), Vector3(cos(a) * high.y, high.x, sin(a) * high.z)]
 			for index in [0, 1, 2, 0, 2, 3]:
 				surface.set_smooth_group(0)
+				if is_finite(joint):
+					var weight := smoothstep(joint - 0.13, joint + 0.13, -points[index].y)
+					surface.set_bones(PackedInt32Array([0, 1, 0, 0]))
+					surface.set_weights(PackedFloat32Array([1.0 - weight, weight, 0, 0]))
 				surface.add_vertex(points[index])
 	surface.index()
 	surface.generate_normals()
-	return mesh(parent, surface.commit(), Vector3.ZERO, mat)
+	var result := mesh(parent, surface.commit(), Vector3.ZERO, mat)
+	if is_finite(joint):
+		var skeleton := Skeleton3D.new()
+		parent.add_child(skeleton)
+		skeleton.add_bone("upper")
+		skeleton.add_bone("lower")
+		skeleton.set_bone_parent(1, 0)
+		skeleton.set_bone_rest(1, Transform3D(Basis.IDENTITY, Vector3(0, -joint, 0)))
+		skeleton.reset_bone_poses()
+		result.skeleton = result.get_path_to(skeleton)
+		result.skin = skeleton.create_skin_from_rest_transforms()
+	return result

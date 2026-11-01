@@ -11,7 +11,7 @@ Plant the seed in the stone bowl to restore the garden, then explore or press E 
 ## Structure
 
 - `scripts/game.gd`: scene progression, input, camera, seed physics and aiming.
-- `scripts/character.gd`: fixed-proportion character model and joint animation.
+- `scripts/character.gd`: fixed-proportion character model, continuous weighted limb meshes and two-bone joint animation.
 - `scripts/garden.gd`: island, vegetation and reveal.
 - `scripts/interface.gd`: title, dialogue, controls and pause menu.
 - `scripts/sound.gd`: original synthesized ambience and chimes.
@@ -22,3 +22,5 @@ Plant the seed in the stone bowl to restore the garden, then explore or press E 
 Run Godot with `--headless --fixed-fps 60 --path . --quit-after 500 -- --self-test`. The test uses real CharacterBody3D movement and RigidBody3D simulation to verify pickup, throwing into the bowl, the garden reveal and fall recovery. An assertion or missing SELF_TEST_PASS means failure. Rendering checks use `-- --capture=garden` or `-- --capture=seed`; the captured frame is saved to `artifacts/garden.png` or `artifacts/seed.png`.
 
 The visuals are procedural meshes, not imported Blender artwork. A later art pass can replace the mesh models while preserving gameplay. Desktop keyboard/mouse is supported; mobile and controller input are not implemented. No network, accounts, telemetry or backend.
+
+Character QA follows `references/README.md`, using screenshots of the original game and equal-height front/rear/bent-pose comparisons.

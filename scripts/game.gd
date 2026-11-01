@@ -82,10 +82,16 @@ func _ready() -> void:
 		aim_dots.append(dot)
 	if testing or not screenshot_mode.is_empty():
 		if screenshot_mode != "title": start()
-		if screenshot_mode == "characters":
+		if screenshot_mode.begins_with("characters"):
 			player.position = Vector3(-0.8, 0.05, 2.0)
 			friend.position = Vector3(0.8, 0.05, 2.0)
 			friend.rotation.y = 0
+			if screenshot_mode == "characters-back":
+				player.visual.rotation.y = PI
+				friend.visual.rotation.y = PI
+			if screenshot_mode == "characters-side":
+				player.visual.rotation.y = PI / 2
+				friend.visual.rotation.y = PI / 2
 			hud.objective.text = ""
 			hud.speech("")
 			ball.hide()
@@ -251,7 +257,7 @@ func _physics_process(delta: float) -> void:
 	var offset := Vector3(0, 8.5, 12.5).rotated(Vector3.UP, yaw)
 	camera.position = camera.position.lerp(focus + offset, 1.0 - exp(-delta * 4))
 	camera.look_at(focus)
-	if screenshot_mode == "characters":
+	if screenshot_mode.begins_with("characters"):
 		camera.position = Vector3(0, 2.9, 7.6)
 		camera.look_at(Vector3(0, 1.4, 2))
 	update_hud()
@@ -263,6 +269,7 @@ func _physics_process(delta: float) -> void:
 
 func update_hud() -> void:
 	hud.prompt.text = ""
+	if screenshot_mode.begins_with("characters"): return
 	if stage == Stage.TITLE: return
 	if held: hud.prompt.text = "Release to throw" if charging else "Hold left click to aim  ·  Right-drag to turn the camera"
 	elif stage == Stage.SEED and player.position.distance_to(ball.position) < 2: hud.prompt.text = "E  Pick up the little seed"
@@ -280,6 +287,14 @@ func update_aim() -> void:
 			if dot.position.y < 0.1: dot.visible = false
 
 func capture(view: String) -> void:
+	if view == "characters-walk":
+		player.left_leg.rotation.x = -0.4
+		player.right_leg.rotation.x = 0.4
+		player.knees[0].rotation.x = 0.65
+		player.leg_rigs[0].set_bone_pose_rotation(1, Quaternion(Vector3.RIGHT, 0.65))
+		player.elbows[0].rotation.x = -0.45
+		player.arm_rigs[0].set_bone_pose_rotation(1, Quaternion(Vector3.RIGHT, -0.45))
+		player.set_physics_process(false)
 	await RenderingServer.frame_post_draw
 	var path := "res://artifacts/" + view + ".png"
 	get_viewport().get_texture().get_image().save_png(path)

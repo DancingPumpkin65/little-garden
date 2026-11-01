@@ -1,3 +1,4 @@
 .godot/
 artifacts/
 *.tmp
+references/*.png
