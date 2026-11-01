@@ -25,6 +25,7 @@ var orbiting := false
 var testing := false
 var test_tick := 0
 var screenshot_mode := ""
+var capturing := false
 var pause := false
 var seed_home := Vector3(-1.4, 0.7, 3.7)
 
@@ -263,9 +264,9 @@ func _physics_process(delta: float) -> void:
 	update_hud()
 	update_aim()
 	if testing: self_test()
-	if not screenshot_mode.is_empty() and elapsed > 1.5:
+	if not screenshot_mode.is_empty() and not capturing and elapsed > 1.5:
+		capturing = true
 		capture.call_deferred(screenshot_mode)
-		screenshot_mode = ""
 
 func update_hud() -> void:
 	hud.prompt.text = ""
@@ -287,14 +288,17 @@ func update_aim() -> void:
 			if dot.position.y < 0.1: dot.visible = false
 
 func capture(view: String) -> void:
-	if view == "characters-walk":
-		player.left_leg.rotation.x = -0.4
-		player.right_leg.rotation.x = 0.4
-		player.knees[0].rotation.x = 0.65
-		player.leg_rigs[0].set_bone_pose_rotation(1, Quaternion(Vector3.RIGHT, 0.65))
-		player.elbows[0].rotation.x = -0.45
-		player.arm_rigs[0].set_bone_pose_rotation(1, Quaternion(Vector3.RIGHT, -0.45))
+	if view == "characters-motion":
 		player.set_physics_process(false)
+		for frame in range(24):
+			player.gait = frame * TAU / 24
+			player.animate_pose(1.0, 1.0)
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("res://artifacts/stride-%s.png" % frame)
+	if view == "characters-walk":
+		player.set_physics_process(false)
+		player.gait = PI * 1.5
+		player.animate_pose(1.0, 1.0)
 	await RenderingServer.frame_post_draw
 	var path := "res://artifacts/" + view + ".png"
 	get_viewport().get_texture().get_image().save_png(path)

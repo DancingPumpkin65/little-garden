@@ -12,6 +12,7 @@ var elbows: Array[Node3D] = []
 var arm_rigs: Array[Skeleton3D] = []
 var leg_rigs: Array[Skeleton3D] = []
 var gait := 0.0
+var stride_blend := 0.0
 var carrying := false
 var drive := Vector3.ZERO
 var jump_requested := false
@@ -32,9 +33,8 @@ func _ready() -> void:
 	var coat := Shapes.material(Color("d6d6d6"))
 	var trouser := Shapes.material(Color("cecece"))
 	var boots := Shapes.material(Color("c8c8c8"))
-	# The torso has a shoulder line, waist and hem; the hip is a separate volume.
-	Shapes.profile(visual, [Vector3(1.17, 0.01, 0.01), Vector3(1.18, 0.37, 0.22), Vector3(1.20, 0.37, 0.22), Vector3(1.34, 0.34, 0.22), Vector3(1.52, 0.30, 0.20), Vector3(1.72, 0.30, 0.20), Vector3(1.88, 0.35, 0.20), Vector3(1.98, 0.29, 0.17), Vector3(2.02, 0.13, 0.12)], coat)
-	Shapes.profile(visual, [Vector3(1.12, 0.22, 0.15), Vector3(1.25, 0.29, 0.18), Vector3(1.35, 0.25, 0.16)], trouser)
+	# A quiet torso silhouette and steadily tapered limbs match the reference body.
+	Shapes.profile(visual, [Vector3(1.26, 0.01, 0.01), Vector3(1.26, 0.34, 0.22), Vector3(1.28, 0.34, 0.22), Vector3(1.34, 0.34, 0.22), Vector3(1.52, 0.34, 0.22), Vector3(1.72, 0.34, 0.21), Vector3(1.88, 0.35, 0.20), Vector3(1.98, 0.29, 0.17), Vector3(2.02, 0.13, 0.12)], coat)
 	Shapes.cylinder(visual, Vector3(0, 2.06, 0), 0.105, 0.18, skin)
 	visual.add_child(head)
 	head.position.y = 2.39
@@ -65,27 +65,27 @@ func _ready() -> void:
 		var side: float = pair[1]
 		visual.add_child(arm)
 		arm.position = Vector3(side * 0.35, 1.91, 0)
-		var arm_mesh := Shapes.profile(arm, [Vector3(-0.88, 0.01, 0.01), Vector3(-0.84, 0.105, 0.105), Vector3(-0.68, 0.125, 0.12), Vector3(-0.54, 0.135, 0.125), Vector3(-0.45, 0.13, 0.13), Vector3(-0.38, 0.135, 0.13), Vector3(-0.24, 0.15, 0.14), Vector3(-0.08, 0.155, 0.145), Vector3(0.04, 0.03, 0.03)], coat, 0.43)
+		var arm_mesh := Shapes.profile(arm, [Vector3(-0.88, 0.10, 0.10), Vector3(-0.84, 0.112, 0.11), Vector3(-0.68, 0.12, 0.117), Vector3(-0.54, 0.127, 0.123), Vector3(-0.45, 0.132, 0.127), Vector3(-0.38, 0.136, 0.13), Vector3(-0.24, 0.143, 0.136), Vector3(-0.08, 0.151, 0.143), Vector3(0.04, 0.155, 0.146)], coat, 0.43)
 		arm_rigs.append(arm_mesh.get_node(arm_mesh.skeleton) as Skeleton3D)
 		var elbow := Node3D.new()
 		arm.add_child(elbow)
 		elbow.position.y = -0.43
 		elbows.append(elbow)
-		Shapes.sphere(elbow, Vector3(0, -0.44, 0.015), Vector3(0.25, 0.26, 0.23), skin)
+		Shapes.sphere(elbow, Vector3(0, -0.44, 0.015), Vector3(0.36, 0.29, 0.32), skin)
 	for pair in [[left_leg, -1.0], [right_leg, 1.0]]:
 		var leg: Node3D = pair[0]
 		var side: float = pair[1]
 		visual.add_child(leg)
 		leg.position = Vector3(side * 0.21, 1.27, 0)
-		var leg_mesh := Shapes.profile(leg, [Vector3(-1.10, 0.04, 0.04), Vector3(-1.06, 0.115, 0.12), Vector3(-0.90, 0.135, 0.14), Vector3(-0.75, 0.15, 0.15), Vector3(-0.62, 0.14, 0.145), Vector3(-0.54, 0.135, 0.145), Vector3(-0.46, 0.14, 0.15), Vector3(-0.30, 0.16, 0.17), Vector3(-0.10, 0.17, 0.18), Vector3(0.03, 0.115, 0.13), Vector3(0.08, 0.01, 0.01)], trouser, 0.55)
+		var leg_mesh := Shapes.profile(leg, [Vector3(-1.10, 0.122, 0.13), Vector3(-1.06, 0.126, 0.134), Vector3(-0.90, 0.134, 0.142), Vector3(-0.75, 0.142, 0.15), Vector3(-0.62, 0.149, 0.157), Vector3(-0.54, 0.153, 0.161), Vector3(-0.46, 0.157, 0.165), Vector3(-0.30, 0.165, 0.173), Vector3(-0.10, 0.175, 0.183), Vector3(0.03, 0.18, 0.188), Vector3(0.08, 0.18, 0.188)], trouser, 0.55)
 		leg_rigs.append(leg_mesh.get_node(leg_mesh.skeleton) as Skeleton3D)
 		var knee := Node3D.new()
 		leg.add_child(knee)
 		knee.position.y = -0.55
 		knees.append(knee)
 		Shapes.sphere(knee, Vector3(0, -0.6, 0.065), Vector3(0.29, 0.21, 0.46), boots)
-	left_arm.rotation.z = -0.12
-	right_arm.rotation.z = 0.12
+	left_arm.rotation.z = -0.28
+	right_arm.rotation.z = 0.28
 
 func build_glasses(frame_material: Material) -> void:
 	for side in [-1.0, 1.0]:
@@ -132,23 +132,32 @@ func _physics_process(delta: float) -> void:
 	var planar_speed := Vector2(velocity.x, velocity.z).length()
 	if planar_speed > 0.1:
 		visual.rotation.y = lerp_angle(visual.rotation.y, atan2(velocity.x, velocity.z), delta * 12)
-	gait += delta * (planar_speed * 3.7 + 1)
-	var stride := clampf(planar_speed / 4.0, 0, 1)
-	left_leg.rotation.x = sin(gait) * 0.6 * stride
-	right_leg.rotation.x = -sin(gait) * 0.6 * stride
-	knees[0].rotation.x = maxf(0, -cos(gait)) * 0.8 * stride
-	knees[1].rotation.x = maxf(0, cos(gait)) * 0.8 * stride
-	for elbow in elbows:
-		elbow.rotation.x = lerpf(elbow.rotation.x, -0.6 if carrying else -0.12 - stride * 0.15, delta * 12)
+	# Advance by distance, so footsteps slow with the controller instead of sliding.
+	stride_blend = lerpf(stride_blend, clampf(planar_speed / 3.5, 0, 1), 1.0 - exp(-delta * 10))
+	gait += planar_speed * delta * TAU / (2.8 if sprint else 2.3)
+	animate_pose(delta, stride_blend, is_on_floor())
+
+# The knee folds during recovery, half a cycle apart for the two legs.
+func animate_pose(delta: float, stride: float, grounded: bool = true) -> void:
+	var blend := 1.0 - exp(-delta * 14)
+	var amplitude := 0.65 if sprint else 0.48
 	for i in range(2):
+		var phase := gait + i * PI
+		var leg := left_leg if i == 0 else right_leg
+		var hip := -cos(phase) * amplitude * stride if grounded else -0.18
+		var knee := pow(maxf(0, -sin(phase)), 1.5) * (1.05 if sprint else 0.7) * stride if grounded else 0.5
+		leg.rotation.x = lerpf(leg.rotation.x, hip, blend)
+		knees[i].rotation.x = lerpf(knees[i].rotation.x, knee, blend)
 		leg_rigs[i].set_bone_pose_rotation(1, Quaternion(Vector3.RIGHT, knees[i].rotation.x))
+		elbows[i].rotation.x = lerpf(elbows[i].rotation.x, -0.6 if carrying else -0.16 - stride * 0.12, blend)
 		arm_rigs[i].set_bone_pose_rotation(1, Quaternion(Vector3.RIGHT, elbows[i].rotation.x))
-	left_arm.rotation.x = lerpf(left_arm.rotation.x, -0.95 if carrying else -sin(gait) * 0.5 * stride, delta * 14)
-	right_arm.rotation.x = lerpf(right_arm.rotation.x, -0.95 if carrying else sin(gait) * 0.5 * stride, delta * 14)
-	left_arm.rotation.z = -0.13 if carrying else -0.12
-	right_arm.rotation.z = 0.13 if carrying else 0.12
-	visual.position.y = absf(sin(gait)) * 0.06 * stride + sin(Time.get_ticks_msec() * 0.002) * 0.012
-	head.rotation.z = sin(gait * 0.5) * 0.015
+	left_arm.rotation.x = lerpf(left_arm.rotation.x, -0.95 if carrying else cos(gait) * 0.38 * stride, blend)
+	right_arm.rotation.x = lerpf(right_arm.rotation.x, -0.95 if carrying else -cos(gait) * 0.38 * stride, blend)
+	left_arm.rotation.z = -0.13 if carrying else -0.28
+	right_arm.rotation.z = 0.13 if carrying else 0.28
+	visual.position.y = lerpf(visual.position.y, (1.0 - cos(gait * 2)) * 0.018 * stride if grounded else 0.0, blend)
+	visual.rotation.z = lerpf(visual.rotation.z, sin(gait) * 0.018 * stride, blend)
+	head.rotation.z = sin(gait) * 0.01 * stride
 
 func facing() -> Vector3:
 	return Vector3(sin(visual.rotation.y), 0, cos(visual.rotation.y))
