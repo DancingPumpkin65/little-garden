@@ -82,6 +82,13 @@ func _ready() -> void:
 		aim_dots.append(dot)
 	if testing or not screenshot_mode.is_empty():
 		if screenshot_mode != "title": start()
+		if screenshot_mode == "characters":
+			player.position = Vector3(-0.8, 0.05, 2.0)
+			friend.position = Vector3(0.8, 0.05, 2.0)
+			friend.rotation.y = 0
+			hud.objective.text = ""
+			hud.speech("")
+			ball.hide()
 		if screenshot_mode == "garden":
 			stage = Stage.GARDEN
 			bloom = 1.0
@@ -244,6 +251,9 @@ func _physics_process(delta: float) -> void:
 	var offset := Vector3(0, 8.5, 12.5).rotated(Vector3.UP, yaw)
 	camera.position = camera.position.lerp(focus + offset, 1.0 - exp(-delta * 4))
 	camera.look_at(focus)
+	if screenshot_mode == "characters":
+		camera.position = Vector3(0, 2.6, 6.8)
+		camera.look_at(Vector3(0, 1.2, 2))
 	update_hud()
 	update_aim()
 	if testing: self_test()
