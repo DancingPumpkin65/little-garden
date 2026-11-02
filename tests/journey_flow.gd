@@ -16,8 +16,8 @@ func shot(name: String) -> void:
 		active.append(node.is_physics_processing())
 		node.set_physics_process(false)
 	if game.journey.chapter == GardenJourney.Chapter.GAP:
-		game.camera.position = Vector3(13, 14, 18)
-		game.camera.look_at(Vector3(0, 0.7, -10))
+		game.camera.position = Vector3(25, 26, -75)
+		game.camera.look_at(Vector3(0, 0.7, -125))
 	elif game.journey.chapter == GardenJourney.Chapter.DARK:
 		game.camera.position = Vector3(0, 5.5, 13)
 		game.camera.look_at(Vector3(0, 1, -2))
@@ -84,10 +84,25 @@ func run() -> void:
 	assert(game.world.passage_revealed and game.world.door_open, "approach reveals narrow passage")
 	await frames(60)
 	await shot("passage")
-	game.player.position = Vector3(0, 0.04, GardenWorld.EXIT_Z - 8)
-	await until(func(): return game.hud.curtain.color.a > 0.99)
-	await shot("black-transition")
-	await until(func(): return game.journey.chapter == GardenJourney.Chapter.GAP and not game.journey.crossing)
+	game.yaw = 0
+	game.player.position = Vector3(0, 0.04, GardenWorld.EXIT_Z - 3)
+	game.player.drive = Vector3.FORWARD
+	var walked := 0
+	while game.player.position.z > GardenJourney.ENTRY_Z - 2 and walked < 1300:
+		await physics_frame
+		assert(game.hud.curtain.color.a == 0 and not game.transitioning, "passage remains seamless without fade or input lock")
+		assert(game.player.position.y > -0.1, "continuous floor all the way along passage")
+		walked += 1
+	assert(walked < 1300, "walk reaches enlarged platform")
+	game.player.drive = Vector3.ZERO
+	await frames(60)
+	assert(game.journey.chapter == GardenJourney.Chapter.GAP, "walk enters quest in same world")
+	assert(not game.world.door_open, "door closes after both characters enter new area")
+	assert(game.journey.far_platform.scale.x == 70, "wide quest platforms")
+	game.player.drive = Vector3.FORWARD
+	await until(func(): return game.player.position.z < GardenJourney.EDGE_Z + 10)
+	game.player.drive = Vector3.ZERO
+	await frames(2)
 	assert(game.hud.dialogue.text == "Hahiya yedi fjiha lakhra. Kighandiro nakhdoha?", "exact gap opening dialogue")
 	await frames(35)
 	await shot("gap-leg")
@@ -99,7 +114,7 @@ func run() -> void:
 	await frames(90)
 	assert(not game.friend.visible, "no normal fall recovery in gap chapter")
 	await shot("hidden-exit")
-	game.player.position = Vector3(0, 0.025, -5.5)
+	game.player.position = Vector3(0, 0.025, GardenJourney.EDGE_Z + 0.5)
 	game.player.drive = Vector3.FORWARD
 	game.player.jump_requested = true
 	await until(func(): return game.journey.chapter == GardenJourney.Chapter.DESCENT)

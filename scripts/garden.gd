@@ -49,8 +49,13 @@ func open_exit() -> void:
 	door_body.collision_layer = 0
 	door_body.collision_mask = 0
 
+func close_exit() -> void:
+	door_open = false
+	door_body.collision_layer = 1
+	door_body.collision_mask = 1
+
 func _process(delta: float) -> void:
-	if door_open: door.rotation.y = lerp_angle(door.rotation.y, -PI * 0.52, 1 - exp(-delta * 3))
+	door.rotation.y = lerp_angle(door.rotation.y, -PI * 0.52 if door_open else 0.0, 1 - exp(-delta * 3))
 
 func reveal(amount: float) -> void:
 	bloom = amount
@@ -61,8 +66,6 @@ func reveal_passage() -> void:
 	passage_revealed = true
 	passage = Node3D.new()
 	add_child(passage)
-	var material := ShaderMaterial.new()
-	material.shader = Shader.new()
-	material.shader.code = "shader_type spatial; render_mode unshaded; varying vec3 world; void vertex(){world=(MODEL_MATRIX*vec4(VERTEX,1.0)).xyz;} void fragment(){float light=1.0-smoothstep(19.0,32.0,-world.z);ALBEDO=vec3(light);}"
-	Shapes.box(passage, Vector3(0, -0.07, EXIT_Z - 8), Vector3(2.5, 0.18, 16), material)
-	Shapes.collider(passage, Vector3(0, -0.48, EXIT_Z - 8), Vector3(2.5, 1, 16))
+	var material := Shapes.material(Color.WHITE)
+	Shapes.box(passage, Vector3(0, -0.07, -41), Vector3(2.5, 0.18, 48), material)
+	Shapes.collider(passage, Vector3(0, -0.48, -41), Vector3(2.5, 1, 48))

@@ -265,6 +265,7 @@ func interact() -> void:
 	if stage == Stage.PATH and player.position.distance_to(Vector3(0, 0, GardenWorld.EXIT_Z)) < 2.2:
 		world.open_exit()
 		world.reveal_passage()
+		journey.prepare_gap()
 		return
 	if stage == Stage.SEED and not held and player.position.distance_to(ball.position) < 2.0:
 		if throw_in_flight: missed_throw()
@@ -427,14 +428,15 @@ func _physics_process(delta: float) -> void:
 		if stage == Stage.PATH and player.position.distance_to(Vector3(0, 0, GardenWorld.EXIT_Z)) < 3:
 			world.open_exit()
 			world.reveal_passage()
-		if stage == Stage.PATH and world.door_open and player.position.z < GardenWorld.EXIT_Z - 7 and absf(player.position.x) < 1.25:
+			journey.prepare_gap()
+		if stage == Stage.PATH and world.door_open and player.position.z < GardenJourney.ENTRY_Z and absf(player.position.x) < 1.25:
 			stage = Stage.COMPLETE
 			ball.hide()
 			journey.enter_gap()
 	environment.background_color = Color.BLACK
 	if friend.follow_target != null:
-		var side := 0.55 if world.passage_revealed and player.position.z < GardenWorld.EXIT_Z + 1 and journey.chapter == GardenJourney.Chapter.FIRST else 2.3
-		friend.follow_offset = (Vector3(side, 0, -3.6)).rotated(Vector3.UP, yaw)
+		var on_passage := world.passage_revealed and player.position.z < GardenWorld.EXIT_Z + 1 and player.position.z > GardenJourney.ENTRY_Z
+		friend.follow_offset = Vector3(0.4, 0, -2.5) if on_passage else Vector3(2.3, 0, -3.6).rotated(Vector3.UP, yaw)
 		if journey.chapter == GardenJourney.Chapter.FIRST and not (world.passage_revealed and player.position.z < GardenWorld.EXIT_Z + 1):
 			var goal := player.position + friend.follow_offset
 			var planar := Vector2(goal.x, goal.z).limit_length(GardenWorld.MAP_RADIUS - 0.8)

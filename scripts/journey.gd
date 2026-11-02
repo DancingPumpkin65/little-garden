@@ -5,6 +5,11 @@ signal dialogue_requested(lines: Array[String])
 signal transition_lock(locked: bool)
 enum Chapter { FIRST, GAP, DESCENT, DARK }
 enum Beat { INTRO, RUN, JUMP, FALLEN }
+const ENTRY_Z := -65.0
+const EDGE_Z := -113.0
+const FAR_Z := -153.0
+var prepared := false
+var dialogue_started := false
 var chapter := Chapter.FIRST
 var beat := Beat.INTRO
 var player: GardenCharacter
@@ -50,42 +55,35 @@ func fade_in() -> void:
 	await tween.finished
 	transition_lock.emit(false)
 
-func enter_gap() -> void:
-	if crossing or chapter != Chapter.FIRST: return
-	crossing = true
-	await fade_to_black()
-	original_world.hide()
-	for body: CollisionObject3D in original_world.find_children("*", "CollisionObject3D", true, false):
-		body.collision_layer = 0
-		body.collision_mask = 0
-	chapter = Chapter.GAP
-	beat = Beat.INTRO
-	clock = 0
+# Build the next area in world space before the player walks down the passage.
+func prepare_gap() -> void:
+	if prepared: return
+	prepared = true
 	var white := Shapes.material(Color.WHITE)
-	platform(Vector3(0, -0.48, 2), Vector3(14, 1, 16), white)
-	far_platform = platform(Vector3(0, -0.48, -25), Vector3(14, 1, 12), white)
+	platform(Vector3(0, -0.48, -89), Vector3(70, 1, 48), white)
+	far_platform = platform(Vector3(0, -0.48, FAR_Z), Vector3(70, 1, 40), white)
 	leg = MeshInstance3D.new()
 	leg.mesh = parts.loose_mesh(&"leg")
 	scene_root.add_child(leg)
-	player.position = Vector3(0, 0.08, 4)
-	player.velocity = Vector3.ZERO
-	companion.position = Vector3(2.2, 0.02, 0.8)
-	companion.velocity = Vector3.ZERO
+	leg.position = Vector3(-1.4, 0.66, FAR_Z + 5)
+
+func enter_gap() -> void:
+	if chapter != Chapter.FIRST: return
+	prepare_gap()
+	chapter = Chapter.GAP
+	beat = Beat.INTRO
+	clock = 0
+
+func start_gap_dialogue() -> void:
+	dialogue_started = true
 	companion.celebration = 0
-	companion.hop = GardenCharacter.Hop.REST
-	companion.hop_clock = 0
-	companion.follow_target = null
-	companion.show()
-	companion.set_physics_process(false)
-	camera.position = Vector3(0, 11, 19)
-	camera.look_at(Vector3(0, 0.7, -3))
 	var lines: Array[String] = ["Hahiya yedi fjiha lakhra. Kighandiro nakhdoha?", "Ymkn khassna namchiw na9zo ltmak."]
 	dialogue_requested.emit(lines)
-	await fade_in()
-	crossing = false
 
 func dialogue_finished() -> void:
-	if chapter == Chapter.GAP and beat == Beat.INTRO:
+	if chapter == Chapter.GAP and beat == Beat.INTRO and dialogue_started:
+		companion.follow_target = null
+		companion.set_physics_process(false)
 		beat = Beat.RUN
 		clock = 0
 
@@ -94,6 +92,10 @@ func enter_dark() -> void:
 	crossing = true
 	chapter = Chapter.DESCENT
 	await fade_to_black()
+	original_world.hide()
+	for body: CollisionObject3D in original_world.find_children("*", "CollisionObject3D", true, false):
+		body.collision_layer = 0
+		body.collision_mask = 0
 	for child in scene_root.get_children():
 		scene_root.remove_child(child)
 		child.queue_free()
@@ -124,17 +126,21 @@ func enter_dark() -> void:
 
 func _physics_process(delta: float) -> void:
 	clock += delta
+	if prepared and chapter in [Chapter.FIRST, Chapter.GAP] and not far_dark:
+		leg.position = Vector3(-1.4 + sin(clock * 1.5) * 0.65, 0.66 + absf(sin(clock * 4)) * 0.55, FAR_Z + 5 + cos(clock) * 0.4)
+		leg.rotation.z = sin(clock * 4) * 0.15
 	if chapter == Chapter.GAP:
-		if not far_dark:
-			leg.position = Vector3(-1.4 + sin(clock * 1.5) * 0.65, 0.66 + absf(sin(clock * 4)) * 0.55, -23 + cos(clock) * 0.4)
-			leg.rotation.z = sin(clock * 4) * 0.15
+		if original_world.door_open and companion.position.z < ENTRY_Z and player.position.z < ENTRY_Z:
+			original_world.close_exit()
+		if not dialogue_started and player.position.z < EDGE_Z + 12:
+			start_gap_dialogue()
 		if beat == Beat.RUN:
 			companion.velocity = Vector3(0, -0.5, -3.8)
 			companion.move_and_slide()
 			companion.visual.rotation.y = PI
 			companion.gait += delta * 8
 			companion.animate_pose(delta, 1.0, true)
-			if companion.position.z < -5:
+			if companion.position.z < EDGE_Z + 1:
 				beat = Beat.JUMP
 				companion.velocity = Vector3(0, 5.4, -5)
 		elif beat == Beat.JUMP:

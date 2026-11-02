@@ -82,7 +82,7 @@ func run() -> void:
 	assert(game.world.door_open, "door can open after restoration")
 	await frames(35)
 	await capture(game, "door-open")
-	game.player.position = Vector3(0, 0.03, GardenWorld.EXIT_Z - 8)
+	game.player.position = Vector3(0, 0.03, GardenJourney.ENTRY_Z - 1)
 	await frames(100)
 	assert(game.stage == game.Stage.COMPLETE, "crossing door completes first scenario")
 	print("SCENARIO_ONE_PASS missing meshes, hopping follow, physical throw, emerging rewards, pickup, whole arm restoration and door")

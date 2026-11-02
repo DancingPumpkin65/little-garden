@@ -8,9 +8,9 @@ Double-click **Play.cmd** to play. **Open editor.cmd** opens the project. Both u
 
 The maps and door use a black-and-white theme: white ground, a black background and a gray/white doorway. The girl keeps her hijab, glasses and flower. Her companion starts without his head, right arm or left leg, and hops ahead and to her side. Small gray dust puffs appear at moving feet.
 
-The first map contains only the target and door. The supplied Latin-letter Darija dialogue plays as queued speech bubbles, with typing and murmurs. Misses use the five supplied responses in order; later misses keep the final response. The success line depends on whether the fruit lands in one/two attempts or takes more tries. A successful throw reveals the whole right arm. It can be picked up, thrown again with the supplied reaction, or returned. Returning it plays his arm celebration and the two supplied lines. Approaching the unlocked door opens it and reveals a narrow passage fading into black.
+The first map contains only the target and door. The supplied Latin-letter Darija dialogue plays as queued speech bubbles, with typing and murmurs. Misses use the five supplied responses in order; later misses keep the final response. The success line depends on whether the fruit lands in one/two attempts or takes more tries. A successful throw reveals the whole right arm. It can be picked up, thrown again with the supplied reaction, or returned. Returning it plays his arm celebration and the two supplied lines. Approaching the unlocked door opens it and reveals a 48-unit narrow white passage connected directly to the leg quest. Both characters walk there without a fade, teleport, or input lock. The door closes after both reach the new area.
 
-The passage leads to two white rectangular platforms separated by an unreachable gap. The loose left leg hops on the far side. After the supplied two lines, the companion runs, jumps and falls without respawning. The far platform and leg disappear into black. Falling from the player's platform is the unannounced exit, followed by a full black transition.
+The passage leads to two 70-unit-wide white rectangular platforms separated by an unreachable 20-unit gap. The near platform is 48 units deep and the far platform is 40 units deep. The gap dialogue starts near the edge, after the player crosses the large empty approach. The loose left leg hops on the far side. After the supplied two lines, the companion runs, jumps and falls without respawning. The far platform and leg disappear into black. Falling from the player's platform is the unannounced exit, followed by a full black transition.
 
 The girl then drops onto a vast white floor that fades to darkness before any edge can be seen. The companion and left leg are ahead of her. Work stops at this arrival; there is no further leg interaction or quest yet. The supplied wording is preserved, including "yedi" while looking at the leg.
 
@@ -24,8 +24,8 @@ WASD/arrows move, Shift runs, Space jumps. E picks up the fruit or arm, returns 
 - `scripts/character.gd`: imported rig, action poses, one-leg companion hop and head flower.
 - `scripts/companion_parts.gd`: missing body sections and the exact recoverable arm mesh.
 - `scripts/recovery_part.gd`: emergence, pickup, carrying and animated restoration.
-- `scripts/garden.gd`: white first map, target, door and fading passage.
-- `scripts/journey.gd`: map transitions, scripted failed jump and dark arrival.
+- `scripts/garden.gd`: white first map, target, closing door and continuous passage.
+- `scripts/journey.gd`: connected quest platforms, scripted failed jump and dark arrival.
 - `scripts/foot_dust.gd`: pooled gray foot puffs.
 - `scripts/interface.gd`: speech bubbles, typewriter, title and pause menu.
 - `scripts/sound.gd`: generated murmurs, jump sound, ambience and chimes.
@@ -38,7 +38,7 @@ Blender produces the body GLBs; Godot keeps the controller and animation logic. 
 
 Run these with Godot's `--headless --fixed-fps 60 --path .` flags:
 
-- `--quit-after 5000 --script tests/journey_flow.gd`: complete connected sequence, exact dialogue, hand throw, dust, formation, black transitions, non-respawning companion and final arrival. Append `-- --procedural-character` for the legacy visuals.
+- `--quit-after 7500 --script tests/journey_flow.gd`: complete connected sequence, exact dialogue, hand throw, dust, formation, seamless passage traversal, door closure, the fall fade, non-respawning companion and final arrival. Append `-- --procedural-character` for the legacy visuals.
 - `--quit-after 1100 --script tests/scenario_one.gd`: real throw, whole-arm reward, pickup, pause/fall recovery, restoration and door completion. Append `-- --procedural-character` for the fallback.
 - `--quit-after 1100 --script tests/hop_and_misses.gd`: hop phases, larger empty map, full-arm geometry and one rotating joke per missed physics throw.
 - `--quit-after 500 -- --self-test`: controller, timed throw, target trigger, reveal and fall recovery.
