@@ -28,7 +28,11 @@ var entry_sealed := false
 var retire_clock := 0.0
 var far_platform: MeshInstance3D
 var leg: MeshInstance3D
+const FAR_FADE_DURATION := 1.4
 var far_dark := false
+var far_fade_started := false
+var far_fade_clock := 0.0
+var far_material: ShaderMaterial
 var crossing := false
 var clock := 0.0
 var dark_material: ShaderMaterial
@@ -69,11 +73,13 @@ func prepare_gap() -> void:
 	prepared = true
 	quest_material = ShaderMaterial.new()
 	quest_material.shader = Shader.new()
-	quest_material.shader.code = "shader_type spatial; uniform vec3 walker=vec3(0.0); varying vec3 world; void vertex(){world=(MODEL_MATRIX*vec4(VERTEX,1.0)).xyz;} void fragment(){float light=1.0-0.8*smoothstep(12.0,85.0,length(world.xz-walker.xz));ALBEDO=vec3(light);ROUGHNESS=1.0;SPECULAR=0.0;}"
+	quest_material.shader.code = "shader_type spatial; uniform vec3 walker=vec3(0.0); uniform float fade=1.0; varying vec3 world; void vertex(){world=(MODEL_MATRIX*vec4(VERTEX,1.0)).xyz;} void fragment(){float light=1.0-0.8*smoothstep(12.0,85.0,length(world.xz-walker.xz));ALBEDO=vec3(light * fade);ROUGHNESS=1.0;SPECULAR=0.0;}"
 	near_platform = platform(Vector3(0, -0.48, ENTRY_Z - 24), Vector3(70, 1, 48), quest_material)
-	far_platform = platform(Vector3(0, -0.48, FAR_Z), Vector3(70, 1, 40), quest_material)
+	far_material = quest_material.duplicate() as ShaderMaterial
+	far_platform = platform(Vector3(0, -0.48, FAR_Z), Vector3(70, 1, 40), far_material)
 	leg = MeshInstance3D.new()
 	leg.mesh = parts.loose_mesh(&"leg")
+	leg.material_override = far_material
 	scene_root.add_child(leg)
 	leg.position = Vector3(-1.4, 0.66, FAR_Z + 5)
 	build_arrival_gate()
@@ -99,6 +105,7 @@ func build_arrival_gate() -> void:
 func update_passage(delta: float) -> void:
 	original_world.passage_material.set_shader_parameter("walker", player.global_position)
 	quest_material.set_shader_parameter("walker", player.global_position)
+	far_material.set_shader_parameter("walker", player.global_position)
 	if not entry_sealed:
 		var approaching := player.position.z < ENTRY_Z + 26
 		arrival_gate.visible = approaching
@@ -196,10 +203,12 @@ func _physics_process(delta: float) -> void:
 			if companion.position.y < -6:
 				companion.hide()
 				beat = Beat.FALLEN
+				far_fade_started = true
+		if far_fade_started and not far_dark:
+			far_fade_clock = minf(far_fade_clock + delta, FAR_FADE_DURATION)
+			far_material.set_shader_parameter("fade", 1.0 - smoothstep(0.0, FAR_FADE_DURATION, far_fade_clock))
+			if far_fade_clock >= FAR_FADE_DURATION:
 				far_dark = true
-				var black := Shapes.material(Color.BLACK)
-				black.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-				far_platform.material_override = black
 				leg.hide()
 		if player.position.y < -6 and not crossing: enter_dark()
 	elif chapter == Chapter.DARK:

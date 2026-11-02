@@ -46,7 +46,7 @@ func run() -> void:
 	await shot("first-door")
 	await walk_to(GardenWorld.EXIT_Z - 4)
 	assert(game.world.door_open and game.journey.prepared, "first door opens onto connected passage")
-	await walk_to(GardenJourney.ENTRY_Z + 80)
+	await walk_to(GardenJourney.ENTRY_Z + GardenWorld.PASSAGE_LENGTH / 2)
 	assert(not game.journey.arrival_gate.visible and not game.journey.near_platform.visible, "long passage looks into darkness before destination appears")
 	await shot("dark-passage")
 	await walk_to(GardenJourney.ENTRY_Z + 20)

@@ -3,7 +3,7 @@ extends Node3D
 
 const MAP_RADIUS := 19.5
 const EXIT_Z := -19.4
-const PASSAGE_LENGTH := 160.0
+const PASSAGE_LENGTH := 80.0
 var bowl := Vector3(0, 0, -4.5)
 var bloom := 0.0
 var door := Node3D.new()
