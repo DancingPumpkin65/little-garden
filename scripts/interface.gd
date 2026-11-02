@@ -50,9 +50,10 @@ func _ready() -> void:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
-	objective = label("Bring the little seed to the stone bowl.", 21)
+	objective = label("", 21)
 	objective.position = Vector2(34, 30)
 	root.add_child(objective)
+	objective.hide()
 	dialogue = label("", 21, Color.BLACK)
 	dialogue.add_theme_color_override("font_shadow_color", Color.TRANSPARENT)
 	dialogue.add_theme_constant_override("outline_size", 0)
@@ -92,6 +93,7 @@ func _ready() -> void:
 	finish.position = Vector2(-300, 82)
 	finish.size = Vector2(600, 60)
 	root.add_child(finish)
+	finish.hide()
 	root.add_child(title_screen)
 	title_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var panel := ColorRect.new()
@@ -131,6 +133,8 @@ func _ready() -> void:
 
 func speech(text: String) -> void:
 	dialogue.text = text.trim_prefix("Ari: ")
+	dialogue.text_direction = Control.TEXT_DIRECTION_AUTO
+	dialogue.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	dialogue.visible_characters = 0
 	typing_clock = 0
 	spoken_letters = 0
@@ -154,9 +158,9 @@ func _process(delta: float) -> void:
 		typing_clock -= LETTER_INTERVAL
 		var letter := dialogue.text.substr(dialogue.visible_characters, 1)
 		dialogue.visible_characters += 1
-		if letter in [".", "!", "?"]:
+		if letter in [".", "!", "?", "؟"]:
 			typing_clock -= 0.17
-		elif letter in [",", ":", ";"]:
+		elif letter in [",", ":", ";", "،", "؛"]:
 			typing_clock -= 0.07
 		elif not letter.strip_edges().is_empty():
 			spoken_letters += 1

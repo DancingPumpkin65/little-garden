@@ -6,6 +6,11 @@ var colors: Array[Color] = []
 var flowers := Node3D.new()
 var bloom := 0.0
 var rng := RandomNumberGenerator.new()
+var door := Node3D.new()
+var door_body: StaticBody3D
+var route: Array[MeshInstance3D] = []
+var route_time := -1.0
+var door_open := false
 var bowl := Vector3(0, 0, -4.5)
 
 func paint(hex: String) -> StandardMaterial3D:
@@ -81,6 +86,44 @@ func _ready() -> void:
 	for i in range(13):
 		var angle := float(i) / 12 * PI
 		Shapes.sphere(arch, Vector3(cos(angle) * 1.35, 2.75 + sin(angle) * 1.2, 0), Vector3(0.36, 0.36, 0.36), foliage[i % 3])
+
+	build_exit()
+
+func build_exit() -> void:
+	var wood := Shapes.material(Color("9c7455"))
+	add_child(door)
+	door.position = Vector3(-1.12, 0.02, -7)
+	Shapes.box(door, Vector3(1.12, 1.28, 0), Vector3(2.16, 2.55, 0.18), wood)
+	var brass := Shapes.material(Color("e6c274"))
+	Shapes.sphere(door, Vector3(1.92, 1.2, 0.16), Vector3.ONE * 0.13, brass)
+	door_body = Shapes.collider(door, Vector3(1.12, 1.28, 0), Vector3(2.16, 2.55, 0.18))
+
+func illuminate_route(from: Vector3) -> void:
+	if route_time >= 0: return
+	route_time = 0
+	var light := Shapes.material(Color("ffe1a0"))
+	light.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	for i in range(16):
+		var t := i / 15.0
+		var at := from.lerp(Vector3(0, 0.025, -7), t)
+		at.x += sin(t * PI) * 1.2
+		at.y = 0.035
+		var stone := Shapes.cylinder(self, at, 0.19, 0.018, light)
+		stone.scale = Vector3.ONE * 0.01
+		route.append(stone)
+
+func open_exit() -> void:
+	door_open = true
+	door_body.collision_layer = 0
+	door_body.collision_mask = 0
+
+func _process(delta: float) -> void:
+	if route_time >= 0:
+		route_time += delta
+		for i in range(route.size()):
+			var amount := smoothstep(0, 0.35, route_time - i * 0.07)
+			route[i].scale = Vector3.ONE * maxf(0.01, amount)
+	if door_open: door.rotation.y = lerp_angle(door.rotation.y, -PI * 0.52, 1 - exp(-delta * 3))
 
 func flower(at: Vector3, mat: Material, stem: Material, size: float) -> void:
 	var plant := Node3D.new()

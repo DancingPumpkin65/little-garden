@@ -1,6 +1,6 @@
 extends Node3D
 
-enum Stage { TITLE, SEED, REVEAL, GARDEN }
+enum Stage { TITLE, SEED, REVEAL, GARDEN, PATH, COMPLETE }
 const ACTION_DURATION := 0.7
 const THROW_RELEASE := 0.4
 var stage := Stage.TITLE
@@ -33,6 +33,9 @@ var test_tick := 0
 var screenshot_mode := ""
 var capturing := false
 var pause := false
+var companion_parts: GardenCompanionParts
+var recovery_parts: Array[GardenRecoveryPart] = []
+var carried_part: GardenRecoveryPart
 var seed_home := Vector3(-1.4, 0.7, 3.7)
 
 func _ready() -> void:
@@ -49,9 +52,17 @@ func _ready() -> void:
 	player.position = Vector3(0, 0.2, 5.7)
 	add_child(player)
 	friend.npc = true
-	friend.position = Vector3(2.4, 0.02, -3.1)
+	friend.position = Vector3(1.6, 0.02, 3.6)
 	friend.rotation.y = -0.5
 	add_child(friend)
+	companion_parts = GardenCompanionParts.new(friend)
+	for kind: StringName in [&"head", &"hand"]:
+		var part := GardenRecoveryPart.new()
+		part.process_mode = Node.PROCESS_MODE_PAUSABLE
+		add_child(part)
+		part.setup(kind, companion_parts.loose_mesh(kind), companion_parts, player)
+		part.returned.connect(part_returned)
+		recovery_parts.append(part)
 	add_child(sound)
 	add_child(hud)
 	hud.letter_spoken.connect(sound.murmur)
@@ -92,6 +103,7 @@ func _ready() -> void:
 	if testing or not screenshot_mode.is_empty():
 		if screenshot_mode != "title": start()
 		if screenshot_mode.begins_with("characters"):
+			for part: StringName in [&"head", &"hand", &"leg"]: companion_parts.restore(part)
 			world.hide()
 			player.position = Vector3(-0.95, 0.05, 2.0)
 			friend.position = Vector3(0.95, 0.05, 2.0)
@@ -110,7 +122,7 @@ func _ready() -> void:
 			bloom = 1.0
 			world.reveal(1)
 			ball.hide()
-			hud.objective.text = "A little care goes a long way."
+
 			hud.speech("")
 
 func build_seed() -> void:
@@ -139,7 +151,8 @@ func start() -> void:
 	stage = Stage.SEED
 	hud.title_screen.hide()
 	if not testing and screenshot_mode.is_empty(): Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	say("Ari: That little seed has been waiting for you.", 5)
+	friend.follow_target = player if not screenshot_mode.begins_with("characters") else null
+	say("رمي هاد الفاكهة فالدايرة... يمكن ترجع ليا شي حاجة!", 6)
 
 func say(text: String, seconds: float = 4.0) -> void:
 	hud.speech(text)
@@ -174,6 +187,25 @@ func _input(event: InputEvent) -> void:
 
 func interact() -> void:
 	if not player.action.is_empty(): return
+	if carried_part != null:
+		if player.position.distance_to(friend.position) < 3:
+			carried_part.put_back()
+			carried_part = null
+		return
+	for part in recovery_parts:
+		if part.state == GardenRecoveryPart.State.AVAILABLE and player.global_position.distance_to(part.global_position) < 2:
+			part.state = GardenRecoveryPart.State.PICKING
+			carried_part = part
+			player.action = "pickup"
+			player.action_phase = 0
+			action_time = 0
+			player.visual.rotation.y = atan2(part.position.x - player.position.x, part.position.z - player.position.z)
+			say("جيبيها ليا... أنا هنا!", 3)
+			return
+	if stage == Stage.PATH and player.position.distance_to(Vector3(0, 0, -7)) < 2.2:
+		world.open_exit()
+		say("يلا نمشيو... باقي خاصنا نلقاو رجلي!", 5)
+		return
 	if stage == Stage.SEED and not held and player.position.distance_to(ball.position) < 2.0:
 		player.action = "pickup"
 		player.action_phase = 0
@@ -183,9 +215,18 @@ func interact() -> void:
 		ball.collision_layer = 0
 		ball.collision_mask = 0
 		sound.chime(392)
-		say("Ari: Plant it in the bowl. Give it a gentle throw.")
+		say("رميها بشوية وسط الدايرة. أنا غادي نبقى معاك.")
 	elif player.position.distance_to(friend.position) < 2.7:
-		say("Ari: Look what you helped grow. Stay a while." if stage == Stage.GARDEN else "Ari: Stand a few steps from the bowl, then aim along the dotted line.", 5)
+		say("تبعي الطريق اللي ضوا، غادي يوصلنا للباب." if stage == Stage.PATH else "خدي راسي ويدي ورديهم ليا." if stage in [Stage.REVEAL, Stage.GARDEN] else "قربي للدايرة ورمي الفاكهة فالوسط.", 5)
+
+func part_returned(kind: StringName) -> void:
+	sound.chime(659.25 if kind == &"head" else 783.99)
+	if not companion_parts.missing[&"head"] and not companion_parts.missing[&"hand"]:
+		stage = Stage.PATH
+		world.illuminate_route(friend.global_position)
+		say("رجعات ليا يدي وراسي! شوفي الطريق ضوا... يلا للباب!", 7)
+	else:
+		say("آه، وليت كنشوف! باقي يدي." if kind == &"head" else "رجعات يدي! باقي راسي.", 4)
 
 func forward() -> Vector3:
 	return Vector3(-sin(yaw), 0, -cos(yaw))
@@ -208,8 +249,11 @@ func update_action(delta: float) -> void:
 	action_time += delta
 	player.action_phase = minf(1, action_time / ACTION_DURATION)
 	if player.action == "pickup" and action_time >= 0.3:
-		held = true
-		player.carrying = true
+		if carried_part != null:
+			if carried_part.state == GardenRecoveryPart.State.PICKING: carried_part.pick_up()
+		else:
+			held = true
+			player.carrying = true
 	player.apply_joint_poses()
 	if player.action == "throw" and action_time >= THROW_RELEASE and not action_released:
 		ball.global_position = player.fruit_position()
@@ -240,7 +284,7 @@ func recover() -> void:
 	ball.collision_mask = 1
 	ball.freeze = false
 	lost_time = 0
-	say("The little seed found its way home.", 2)
+	say("ها الفاكهة رجعات لبلاصتها. نعاودو؟", 2)
 
 func planted() -> void:
 	if stage != Stage.SEED: return
@@ -250,8 +294,9 @@ func planted() -> void:
 	held = false
 	player.carrying = false
 	charging = false
-	hud.objective.text = "Watch what a little care can do."
-	say("Ari: There you are. I knew you could bring it back.", 6)
+	for i in range(recovery_parts.size()):
+		recovery_parts[i].emerge(world.bowl + Vector3(0, 0.55, 0), world.bowl + Vector3(-0.65 if i == 0 else 0.65, 1.3 if i == 0 else 1.05, 0.1))
+	say("ها راسي ويدي! جيبيهم ليا، الله يخليك.", 6)
 	sound.chime(659.25)
 
 func _physics_process(delta: float) -> void:
@@ -267,10 +312,18 @@ func _physics_process(delta: float) -> void:
 		player.drive = Vector3(input.x, 0, input.y).rotated(Vector3.UP, yaw).limit_length()
 		player.sprint = Input.is_physical_key_pressed(KEY_SHIFT)
 	if stage == Stage.TITLE: player.drive = Vector3.ZERO
+	if friend.position.y < -4:
+		friend.position = player.position + Vector3(-1, 0.2, 1)
+		friend.velocity = Vector3.ZERO
 	if player.position.y < -5:
 		player.position = Vector3(0, 0.2, 5.7)
 		player.velocity = Vector3.ZERO
 		if held: recover()
+		if carried_part != null:
+			carried_part.state = GardenRecoveryPart.State.AVAILABLE
+			carried_part = null
+			player.carrying = false
+			player.action = ""
 	if not player.action.is_empty(): player.drive = Vector3.ZERO
 	update_action(delta)
 	if held:
@@ -284,14 +337,15 @@ func _physics_process(delta: float) -> void:
 		var near_bowl := Vector2(ball.position.x - world.bowl.x, ball.position.z - world.bowl.z).length() < 0.8
 		if near_bowl and ball.position.y > 0.3 and ball.position.y < 1.2: planted()
 		elif ball.position.y < -4 or (lost_time > 12 and ball.position.distance_to(seed_home) > 1): recover()
-	if stage == Stage.REVEAL:
+	if stage in [Stage.REVEAL, Stage.GARDEN, Stage.PATH, Stage.COMPLETE] and bloom < 1:
 		bloom = minf(1, bloom + delta / 4.0)
 		world.reveal(smoothstep(0, 1, bloom))
 		if bloom >= 1:
-			stage = Stage.GARDEN
-			hud.objective.text = "Your garden is growing. Explore, or talk to Ari."
-			hud.finish.text = "You made room for something good."
+			if stage == Stage.REVEAL: stage = Stage.GARDEN
 			sound.chime(783.99)
+	if stage == Stage.PATH and world.door_open and player.position.z < -7.55 and absf(player.position.x) < 1.5:
+		stage = Stage.COMPLETE
+		say("دوزنا! نكملو نقلبو على رجلي فالجهة الأخرى.", 6)
 	environment.background_color = Color("20212b").lerp(Color("b9d2d1"), bloom)
 	var focus := player.position + Vector3(0, 0.7, -1)
 	var offset := Vector3(0, sin(pitch) * 15.1, cos(pitch) * 15.1).rotated(Vector3.UP, yaw)
@@ -309,6 +363,7 @@ func _physics_process(delta: float) -> void:
 
 func _process(_delta: float) -> void:
 	if held and not pause: ball.global_position = player.fruit_position()
+	if carried_part != null and carried_part.state == GardenRecoveryPart.State.CARRIED and not pause: carried_part.global_position = player.fruit_position()
 	if not pause and stage != Stage.TITLE: update_hud()
 
 func update_hud() -> void:

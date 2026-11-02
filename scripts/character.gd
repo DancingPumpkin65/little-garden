@@ -3,6 +3,7 @@ extends "res://scripts/legacy/procedural_character.gd"
 
 const MODEL := preload("res://assets/characters/reference_character.glb")
 const COMPANION_MODEL := preload("res://assets/characters/companion_character.glb")
+var follow_target: Node3D
 var imported_skeleton: Skeleton3D
 var action := ""
 var action_phase := 0.0
@@ -15,6 +16,7 @@ func _ready() -> void:
 	# Explicit fallback keeps the previous complete implementation.
 	if "--procedural-character" in OS.get_cmdline_user_args():
 		super._ready()
+		if not npc: add_head_flower()
 		return
 	safe_margin = 0.001
 	var collision := CollisionShape3D.new()
@@ -59,8 +61,22 @@ func _ready() -> void:
 	left_arm.rotation.z = -0.45
 	right_arm.rotation.z = 0.45
 	apply_joint_poses()
+	if not npc: add_head_flower()
 
 func _physics_process(delta: float) -> void:
+	if npc and follow_target != null:
+		var offset := follow_target.global_position - global_position
+		offset.y = 0
+		var moving := offset.length() > 2.4
+		if is_on_floor() and moving: velocity.y = 3.8
+		if not is_on_floor(): velocity.y -= 18 * delta
+		var direction := offset.normalized() if moving else Vector3.ZERO
+		velocity.x = move_toward(velocity.x, direction.x * 2.2, delta * 9)
+		velocity.z = move_toward(velocity.z, direction.z * 2.2, delta * 9)
+		move_and_slide()
+		if moving: visual.rotation.y = lerp_angle(visual.rotation.y, atan2(offset.x, offset.z), delta * 7)
+		animate_pose(delta, 0.0, is_on_floor())
+		return
 	super._physics_process(delta)
 	if npc and imported_skeleton != null: apply_joint_poses()
 
@@ -157,3 +173,31 @@ func throw_origin(phase: float) -> Vector3:
 	elbows[1].rotation = elbow_angles[1]
 	apply_joint_poses()
 	return point
+
+func add_head_flower() -> void:
+	var attachment: Node3D
+	if imported_skeleton == null:
+		attachment = Node3D.new()
+		head.add_child(attachment)
+	else:
+		var bone_attachment := BoneAttachment3D.new()
+		bone_attachment.bone_name = "head"
+		imported_skeleton.add_child(bone_attachment)
+		attachment = bone_attachment
+	var stem := Shapes.material(Color("45865a"))
+	var petals := Shapes.material(Color("fff9eb"))
+	var center := Shapes.material(Color("e6c35d"))
+	Shapes.cylinder(attachment, Vector3(0, 0.49, 0), 0.018, 0.34, stem)
+	flower_lobe(attachment, Vector3(0.075, 0.45, 0), Vector3(0.15, 0.05, 0.07), stem).rotation.z = 0.5
+	for i in range(5):
+		var angle := i * TAU / 5
+		flower_lobe(attachment, Vector3(cos(angle) * 0.11, 0.66 + sin(angle) * 0.11, 0), Vector3(0.18, 0.10, 0.07), petals).rotation.z = angle
+	flower_lobe(attachment, Vector3(0, 0.66, 0.025), Vector3(0.11, 0.11, 0.07), center)
+
+func flower_lobe(parent: Node3D, at: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
+	var mesh := SphereMesh.new()
+	mesh.radial_segments = 8
+	mesh.rings = 3
+	mesh.radius = 0.5
+	mesh.height = 1
+	return Shapes.mesh(parent, mesh, at, material, size)

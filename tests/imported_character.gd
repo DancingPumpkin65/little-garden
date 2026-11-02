@@ -17,7 +17,7 @@ func verify(companion: bool) -> void:
 	assert(character.imported_skeleton != null, "default player must instantiate the Blender armature")
 	var skeleton := character.imported_skeleton
 	assert(skeleton.get_bone_count() == 15, "export retains the full body/head/limb armature")
-	var meshes := character.model_root.find_children("*", "MeshInstance3D", true, false)
+	var meshes := character.model_root.find_children("*", "MeshInstance3D", true, false).filter(func(node: Node): return (node as MeshInstance3D).skin != null)
 	assert(meshes.size() == 1, "runtime combines source objects into one skinned mesh")
 	var triangles := 0
 	for node in meshes:
