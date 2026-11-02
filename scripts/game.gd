@@ -33,6 +33,7 @@ var test_tick := 0
 var screenshot_mode := ""
 var capturing := false
 var pause := false
+var restart_pending := false
 var companion_parts: GardenCompanionParts
 var recovery_parts: Array[GardenRecoveryPart] = []
 var carried_part: GardenRecoveryPart
@@ -101,7 +102,7 @@ func _ready() -> void:
 	player.jumped.connect(sound.jump)
 	hud.begin.connect(start)
 	hud.resumed.connect(func(): set_pause(false))
-	hud.restarted.connect(func(): get_tree().reload_current_scene())
+	hud.restarted.connect(restart_game)
 	hud.mute_changed.connect(func(muted: bool): AudioServer.set_bus_mute(0, muted))
 	var env_node := WorldEnvironment.new()
 	environment.background_mode = Environment.BG_COLOR
@@ -179,7 +180,19 @@ func build_seed() -> void:
 	add_child(ball)
 	ball.position = seed_home
 
+func restart_game() -> void:
+	if restart_pending: return
+	restart_pending = true
+	get_tree().paused = false
+	pause = false
+	sound.silence()
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	get_tree().reload_current_scene.call_deferred()
+
 func start() -> void:
+	get_tree().paused = false
+	pause = false
+	hud.pause_screen.hide()
 	stage = Stage.SEED
 	hud.title_screen.hide()
 	if not testing and screenshot_mode.is_empty(): Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -256,6 +269,7 @@ func interact() -> void:
 		if part.state == GardenRecoveryPart.State.AVAILABLE and player.global_position.distance_to(part.global_position) < 2:
 			part.state = GardenRecoveryPart.State.PICKING
 			carried_part = part
+			friend.waiting_for_arm = true
 			player.action = "pickup"
 			player.action_phase = 0
 			action_time = 0
@@ -284,6 +298,7 @@ func interact() -> void:
 		else: say_sequence(INTRO)
 
 func part_returned(_kind: StringName) -> void:
+	friend.waiting_for_arm = false
 	sound.chime(783.99)
 	stage = Stage.PATH
 	friend.celebration = 3.5
@@ -436,7 +451,7 @@ func _physics_process(delta: float) -> void:
 	environment.background_color = Color.BLACK
 	if friend.follow_target != null:
 		var on_passage := world.passage_revealed and player.position.z < GardenWorld.EXIT_Z + 1 and player.position.z > GardenJourney.ENTRY_Z
-		friend.follow_offset = Vector3(0.4, 0, -2.5) if on_passage else Vector3(2.3, 0, -3.6).rotated(Vector3.UP, yaw)
+		friend.follow_offset = Vector3(clampf(player.position.x + 0.4, -0.65, 0.65) - player.position.x, 0, -2.5) if on_passage else Vector3(2.3, 0, -3.6).rotated(Vector3.UP, yaw)
 		if journey.chapter == GardenJourney.Chapter.FIRST and not (world.passage_revealed and player.position.z < GardenWorld.EXIT_Z + 1):
 			var goal := player.position + friend.follow_offset
 			var planar := Vector2(goal.x, goal.z).limit_length(GardenWorld.MAP_RADIUS - 0.8)

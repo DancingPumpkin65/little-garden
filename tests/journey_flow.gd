@@ -16,8 +16,8 @@ func shot(name: String) -> void:
 		active.append(node.is_physics_processing())
 		node.set_physics_process(false)
 	if game.journey.chapter == GardenJourney.Chapter.GAP:
-		game.camera.position = Vector3(25, 26, -75)
-		game.camera.look_at(Vector3(0, 0.7, -125))
+		game.camera.position = Vector3(25, 26, GardenJourney.ENTRY_Z - 10)
+		game.camera.look_at(Vector3(0, 0.7, GardenJourney.EDGE_Z - 12))
 	elif game.journey.chapter == GardenJourney.Chapter.DARK:
 		game.camera.position = Vector3(0, 5.5, 13)
 		game.camera.look_at(Vector3(0, 1, -2))
@@ -88,16 +88,16 @@ func run() -> void:
 	game.player.position = Vector3(0, 0.04, GardenWorld.EXIT_Z - 3)
 	game.player.drive = Vector3.FORWARD
 	var walked := 0
-	while game.player.position.z > GardenJourney.ENTRY_Z - 2 and walked < 1300:
+	while game.player.position.z > GardenJourney.ENTRY_Z - 2 and walked < 4000:
 		await physics_frame
 		assert(game.hud.curtain.color.a == 0 and not game.transitioning, "passage remains seamless without fade or input lock")
 		assert(game.player.position.y > -0.1, "continuous floor all the way along passage")
 		walked += 1
-	assert(walked < 1300, "walk reaches enlarged platform")
+	assert(walked < 4000, "walk reaches enlarged platform")
 	game.player.drive = Vector3.ZERO
 	await frames(60)
 	assert(game.journey.chapter == GardenJourney.Chapter.GAP, "walk enters quest in same world")
-	assert(not game.world.door_open, "door closes after both characters enter new area")
+	assert(game.journey.entry_sealed and not game.journey.arrival_open, "arrival door closes after both characters enter new area")
 	assert(game.journey.far_platform.scale.x == 70, "wide quest platforms")
 	game.player.drive = Vector3.FORWARD
 	await until(func(): return game.player.position.z < GardenJourney.EDGE_Z + 10)

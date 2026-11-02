@@ -1,8 +1,9 @@
 class_name GardenWorld
 extends Node3D
 
-const EXIT_Z := -17.0
 const MAP_RADIUS := 19.5
+const EXIT_Z := -19.4
+const PASSAGE_LENGTH := 160.0
 var bowl := Vector3(0, 0, -4.5)
 var bloom := 0.0
 var door := Node3D.new()
@@ -11,6 +12,7 @@ var door_open := false
 var ground_material: StandardMaterial3D
 var passage: Node3D
 var passage_revealed := false
+var passage_material: ShaderMaterial
 
 func _ready() -> void:
 	ground_material = Shapes.material(Color.WHITE)
@@ -66,6 +68,15 @@ func reveal_passage() -> void:
 	passage_revealed = true
 	passage = Node3D.new()
 	add_child(passage)
-	var material := Shapes.material(Color.WHITE)
-	Shapes.box(passage, Vector3(0, -0.07, -41), Vector3(2.5, 0.18, 48), material)
-	Shapes.collider(passage, Vector3(0, -0.48, -41), Vector3(2.5, 1, 48))
+	passage_material = ShaderMaterial.new()
+	passage_material.shader = Shader.new()
+	passage_material.shader.code = "shader_type spatial; uniform vec3 walker=vec3(0.0); varying vec3 world; void vertex(){world=(MODEL_MATRIX*vec4(VERTEX,1.0)).xyz;} void fragment(){float light=1.0-smoothstep(16.0,38.0,length(world.xz-walker.xz));ALBEDO=vec3(light);ROUGHNESS=1.0;SPECULAR=0.0;}"
+	var center_z := EXIT_Z - PASSAGE_LENGTH / 2
+	Shapes.box(passage, Vector3(0, -0.07, center_z), Vector3(2.5, 0.18, PASSAGE_LENGTH), passage_material)
+	Shapes.collider(passage, Vector3(0, -0.48, center_z), Vector3(2.5, 1, PASSAGE_LENGTH))
+
+func retire() -> void:
+	hide()
+	for body: CollisionObject3D in find_children("*", "CollisionObject3D", true, false):
+		body.collision_layer = 0
+		body.collision_mask = 0

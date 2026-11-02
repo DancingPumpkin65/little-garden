@@ -8,6 +8,7 @@ var hop := Hop.REST
 var hop_clock := 0.0
 var follow_offset := Vector3.ZERO
 var celebration := 0.0
+var waiting_for_arm := false
 var follow_target: Node3D
 var imported_skeleton: Skeleton3D
 var action := ""
@@ -80,7 +81,7 @@ func update_companion_hop(delta: float) -> void:
 	hop_clock += delta
 	var offset := follow_target.global_position + follow_offset - global_position
 	offset.y = 0
-	var moving := offset.length() > (0.75 if follow_offset.length() > 0.1 else 2.4)
+	var moving := not waiting_for_arm and offset.length() > (0.75 if follow_offset.length() > 0.1 else 2.4)
 	if hop == Hop.REST and moving and is_on_floor():
 		hop = Hop.CROUCH
 		hop_clock = 0
@@ -110,11 +111,16 @@ func update_companion_hop(delta: float) -> void:
 		left_arm.rotation.x = -0.25
 		left_arm.rotation.z = -0.95
 		elbows[0].rotation.x = -0.35
+		right_arm.rotation.x = -0.25 - 0.4 * sin(clampf(hop_clock / 0.46, 0, 1) * PI)
+		right_arm.rotation.z = 0.95
+		elbows[1].rotation.x = -0.35
 	else:
 		right_leg.rotation.x = -0.16 * bend
 		knees[1].rotation.x = 0.42 * bend
 		left_arm.rotation.x = 0.22 * bend
 		left_arm.rotation.z = -0.55
+		right_arm.rotation.x = 0.22 * bend
+		right_arm.rotation.z = 0.55
 	left_leg.rotation.x = 0
 	knees[0].rotation.x = 0
 	visual.position.y = -0.055 * bend

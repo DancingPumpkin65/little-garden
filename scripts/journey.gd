@@ -5,9 +5,9 @@ signal dialogue_requested(lines: Array[String])
 signal transition_lock(locked: bool)
 enum Chapter { FIRST, GAP, DESCENT, DARK }
 enum Beat { INTRO, RUN, JUMP, FALLEN }
-const ENTRY_Z := -65.0
-const EDGE_Z := -113.0
-const FAR_Z := -153.0
+const ENTRY_Z := GardenWorld.EXIT_Z - GardenWorld.PASSAGE_LENGTH
+const EDGE_Z := ENTRY_Z - 48.0
+const FAR_Z := EDGE_Z - 40.0
 var prepared := false
 var dialogue_started := false
 var chapter := Chapter.FIRST
@@ -19,12 +19,20 @@ var original_world: GardenWorld
 var camera: Camera3D
 var curtain: ColorRect
 var scene_root := Node3D.new()
+var near_platform: MeshInstance3D
+var arrival_gate: Node3D
+var arrival_hinge: Node3D
+var arrival_body: StaticBody3D
+var arrival_open := false
+var entry_sealed := false
+var retire_clock := 0.0
 var far_platform: MeshInstance3D
 var leg: MeshInstance3D
 var far_dark := false
 var crossing := false
 var clock := 0.0
 var dark_material: ShaderMaterial
+var quest_material: ShaderMaterial
 
 func setup(girl: GardenCharacter, guy: GardenCharacter, body_parts: GardenCompanionParts, first_map: GardenWorld, view: Camera3D, overlay: ColorRect) -> void:
 	player = girl
@@ -59,13 +67,55 @@ func fade_in() -> void:
 func prepare_gap() -> void:
 	if prepared: return
 	prepared = true
-	var white := Shapes.material(Color.WHITE)
-	platform(Vector3(0, -0.48, -89), Vector3(70, 1, 48), white)
-	far_platform = platform(Vector3(0, -0.48, FAR_Z), Vector3(70, 1, 40), white)
+	quest_material = ShaderMaterial.new()
+	quest_material.shader = Shader.new()
+	quest_material.shader.code = "shader_type spatial; uniform vec3 walker=vec3(0.0); varying vec3 world; void vertex(){world=(MODEL_MATRIX*vec4(VERTEX,1.0)).xyz;} void fragment(){float light=1.0-0.8*smoothstep(12.0,85.0,length(world.xz-walker.xz));ALBEDO=vec3(light);ROUGHNESS=1.0;SPECULAR=0.0;}"
+	near_platform = platform(Vector3(0, -0.48, ENTRY_Z - 24), Vector3(70, 1, 48), quest_material)
+	far_platform = platform(Vector3(0, -0.48, FAR_Z), Vector3(70, 1, 40), quest_material)
 	leg = MeshInstance3D.new()
 	leg.mesh = parts.loose_mesh(&"leg")
 	scene_root.add_child(leg)
 	leg.position = Vector3(-1.4, 0.66, FAR_Z + 5)
+	build_arrival_gate()
+	near_platform.hide()
+	far_platform.hide()
+	leg.hide()
+
+func build_arrival_gate() -> void:
+	arrival_gate = Node3D.new()
+	scene_root.add_child(arrival_gate)
+	arrival_gate.position.z = ENTRY_Z
+	var white := Shapes.material(Color.WHITE)
+	for x in [-1.65, 1.65]: Shapes.box(arrival_gate, Vector3(x, 2.1, 0), Vector3(0.25, 4.2, 0.3), white)
+	Shapes.box(arrival_gate, Vector3(0, 4.2, 0), Vector3(3.55, 0.25, 0.3), white)
+	arrival_hinge = Node3D.new()
+	arrival_gate.add_child(arrival_hinge)
+	arrival_hinge.position = Vector3(-1.5, 0.02, 0)
+	Shapes.box(arrival_hinge, Vector3(1.5, 2.0, 0), Vector3(3, 4, 0.18), white)
+	arrival_body = Shapes.collider(arrival_hinge, Vector3(1.5, 2, 0), Vector3(3, 4, 0.18))
+	arrival_gate.hide()
+
+# The old world remains walkable until both characters pass the second door.
+func update_passage(delta: float) -> void:
+	original_world.passage_material.set_shader_parameter("walker", player.global_position)
+	quest_material.set_shader_parameter("walker", player.global_position)
+	if not entry_sealed:
+		var approaching := player.position.z < ENTRY_Z + 26
+		arrival_gate.visible = approaching
+		if player.position.z < ENTRY_Z + 12:
+			near_platform.show()
+			far_platform.show()
+			leg.show()
+			arrival_open = true
+			arrival_body.collision_layer = 0
+		if chapter == Chapter.GAP and player.position.z < ENTRY_Z - 2 and companion.position.z < ENTRY_Z - 2:
+			entry_sealed = true
+			arrival_open = false
+			arrival_body.collision_layer = 1
+	else:
+		retire_clock += delta
+		if retire_clock > 1.2 and original_world.visible: original_world.retire()
+	arrival_hinge.rotation.y = lerp_angle(arrival_hinge.rotation.y, -PI * 0.52 if arrival_open else 0.0, 1 - exp(-delta * 3))
 
 func enter_gap() -> void:
 	if chapter != Chapter.FIRST: return
@@ -92,10 +142,7 @@ func enter_dark() -> void:
 	crossing = true
 	chapter = Chapter.DESCENT
 	await fade_to_black()
-	original_world.hide()
-	for body: CollisionObject3D in original_world.find_children("*", "CollisionObject3D", true, false):
-		body.collision_layer = 0
-		body.collision_mask = 0
+	original_world.retire()
 	for child in scene_root.get_children():
 		scene_root.remove_child(child)
 		child.queue_free()
@@ -126,12 +173,11 @@ func enter_dark() -> void:
 
 func _physics_process(delta: float) -> void:
 	clock += delta
+	if prepared and chapter in [Chapter.FIRST, Chapter.GAP]: update_passage(delta)
 	if prepared and chapter in [Chapter.FIRST, Chapter.GAP] and not far_dark:
 		leg.position = Vector3(-1.4 + sin(clock * 1.5) * 0.65, 0.66 + absf(sin(clock * 4)) * 0.55, FAR_Z + 5 + cos(clock) * 0.4)
 		leg.rotation.z = sin(clock * 4) * 0.15
 	if chapter == Chapter.GAP:
-		if original_world.door_open and companion.position.z < ENTRY_Z and player.position.z < ENTRY_Z:
-			original_world.close_exit()
 		if not dialogue_started and player.position.z < EDGE_Z + 12:
 			start_gap_dialogue()
 		if beat == Beat.RUN:
