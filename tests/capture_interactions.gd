@@ -33,7 +33,7 @@ func run() -> void:
   if i == 40: await shot("follow-through")
  game.world.show()
  game.player.position = Vector3(1, 0.1, -1)
- game.say("That little seed has been waiting for you.")
+ game.say("Had l-bab mkhebbi chi 7aja... jerrbi ttfa7a.")
  game.camera.position = Vector3(5, 4.2, 5)
  game.camera.look_at(Vector3(1.5, 1.3, -2))
  game.hud.place_speech(game.camera, game.friend.global_position + Vector3.UP * 2.9)

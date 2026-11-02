@@ -134,7 +134,7 @@ func _ready() -> void:
 func speech(text: String) -> void:
 	dialogue.text = text.trim_prefix("Ari: ")
 	dialogue.text_direction = Control.TEXT_DIRECTION_AUTO
-	dialogue.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	dialogue.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	dialogue.visible_characters = 0
 	typing_clock = 0
 	spoken_letters = 0

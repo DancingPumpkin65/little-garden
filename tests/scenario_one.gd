@@ -7,7 +7,10 @@ func capture(game: Node3D, name: String) -> void:
 	game.set_physics_process(false)
 	game.camera.position = game.player.position + Vector3(5, 4.3, 6)
 	game.camera.look_at(game.player.position.lerp(game.friend.position, 0.45) + Vector3.UP * 1.2)
-	game.hud.place_speech(game.camera, game.friend.global_position + Vector3.UP * 2.9)
+	if name == "start":
+		game.camera.position = Vector3(14, 14, 22)
+		game.camera.look_at(Vector3(0, 0, -4))
+	game.hud.place_speech(game.camera, game.friend.global_position + Vector3.UP * 2.35)
 	await RenderingServer.frame_post_draw
 	root.get_texture().get_image().save_png("res://artifacts/scenario-" + name + ".png")
 	game.set_physics_process(true)
@@ -19,7 +22,7 @@ func run() -> void:
 	game.test_tick = -10000
 	game.start()
 	assert(game.hud.objective.text.is_empty() and game.hud.finish.text.is_empty(), "no floating headings")
-	assert(game.companion_parts.missing.values().all(func(value): return value), "head, right hand and left leg start missing")
+	assert(game.companion_parts.missing.values().all(func(value): return value), "head, whole right arm and left leg start missing")
 	for part in game.recovery_parts: assert(part.visual.mesh.get_surface_count() > 0, "rewards use actual character meshes")
 	await capture(game, "start")
 	var before: Vector3 = game.friend.position
@@ -28,6 +31,7 @@ func run() -> void:
 	for i in range(100):
 		await physics_frame
 		hopped = hopped or game.friend.position.y > 0.1
+		if i == 35: await capture(game, "hop")
 	assert(hopped and game.friend.position.x < before.x - 1, "companion follows by hopping")
 	game.player.position = Vector3(-1.4, 0.1, 4.5)
 	game.interact()
@@ -38,6 +42,7 @@ func run() -> void:
 	game.throw_seed()
 	await frames(170)
 	assert(game.stage != game.Stage.SEED, "real throw activates the circle")
+	assert(game.missed_throws == 0, "successful throw never gets a miss joke")
 	await capture(game, "rewards")
 	for part in game.recovery_parts:
 		assert(part.state == GardenRecoveryPart.State.AVAILABLE, "reward emerges smoothly into collectible state")
@@ -52,7 +57,7 @@ func run() -> void:
 		await frames(6)
 		assert(part.clock == stopped_clock, "pause freezes reward animation")
 		game.set_pause(false)
-		if part.kind == &"head":
+		if part.kind == &"arm":
 			game.player.position.y = -6
 			await frames(3)
 			assert(game.carried_part == null and part.state == GardenRecoveryPart.State.AVAILABLE, "fall returns the part without losing it")
@@ -66,19 +71,20 @@ func run() -> void:
 		assert(part.state == GardenRecoveryPart.State.RETURNING, "part animates back to companion")
 		await frames(55)
 		assert(part.state == GardenRecoveryPart.State.RESTORED and not game.companion_parts.missing[part.kind], "correct mesh is restored")
-		if part.kind == &"head": assert(game.stage != game.Stage.PATH, "one recovered part does not unlock the route")
-	assert(game.stage == game.Stage.PATH and game.world.route.size() == 16, "both parts light the route")
+	assert(game.stage == game.Stage.PATH and game.world.door_open, "returning the arm opens the door")
+	assert(game.recovery_parts.size() == 1 and game.recovery_parts[0].kind == &"arm", "only a whole arm appears")
+	assert(game.companion_parts.missing[&"head"], "head remains missing for a later stage")
 	await frames(80)
 	await capture(game, "path")
 	assert(game.companion_parts.missing[&"leg"], "left leg remains missing for next scenario")
-	game.player.position = Vector3(0, 0.03, -6.2)
+	game.player.position = Vector3(0, 0.03, GardenWorld.EXIT_Z + 0.8)
 	game.interact()
 	assert(game.world.door_open, "door can open after restoration")
 	await frames(35)
 	await capture(game, "door-open")
-	game.player.position = Vector3(0, 0.03, -7.8)
+	game.player.position = Vector3(0, 0.03, GardenWorld.EXIT_Z - 0.8)
 	await frames(3)
 	assert(game.stage == game.Stage.COMPLETE, "crossing door completes first scenario")
-	print("SCENARIO_ONE_PASS missing meshes, hopping follow, physical throw, emerging rewards, pickup, restore, route and door")
+	print("SCENARIO_ONE_PASS missing meshes, hopping follow, physical throw, emerging rewards, pickup, whole arm restoration and door")
 	game.sound.silence()
 	quit()

@@ -1,11 +1,12 @@
 class_name GardenCompanionParts
 extends RefCounted
 
-const CENTERS := {&"head": Vector3(0, 2.145, 0.015), &"hand": Vector3(0.70, 1.075, 0.018)}
-var missing := {&"head": true, &"hand": true, &"leg": true}
+const CENTERS := {&"head": Vector3(0, 2.145, 0.015), &"arm": Vector3(0.52, 1.43, 0.018)}
+var missing := {&"head": true, &"arm": true, &"leg": true}
 var instance: MeshInstance3D
 var original: Mesh
 var groups: Array[Array] = []
+var arm_cap: MeshInstance3D
 var actor: GardenCharacter
 var legacy_nodes: Dictionary[StringName, Node3D] = {}
 
@@ -13,7 +14,7 @@ func _init(character: GardenCharacter) -> void:
 	actor = character
 	if actor.imported_skeleton == null:
 		legacy_nodes[&"head"] = actor.head
-		legacy_nodes[&"hand"] = actor.elbows[1].get_children()[0] as Node3D
+		legacy_nodes[&"arm"] = actor.right_arm
 		legacy_nodes[&"leg"] = actor.left_leg
 		refresh()
 		return
@@ -25,7 +26,7 @@ func _init(character: GardenCharacter) -> void:
 		var parts: Array[StringName] = []
 		for triangle in range(indices.size() / 3):
 			var part: StringName = &"body"
-			for candidate: StringName in [&"head", &"hand", &"leg"]:
+			for candidate: StringName in [&"head", &"arm", &"leg"]:
 				var influence := 0.0
 				for corner in range(3): influence += part_weight(arrays, indices[triangle * 3 + corner], candidate) / 3.0
 				if influence > 0.48:
@@ -33,6 +34,10 @@ func _init(character: GardenCharacter) -> void:
 					break
 			parts.append(part)
 		groups.append(parts)
+	var attachment := BoneAttachment3D.new()
+	attachment.bone_name = "arm_R"
+	actor.imported_skeleton.add_child(attachment)
+	arm_cap = Shapes.sphere(attachment, Vector3.ZERO, Vector3(0.28, 0.26, 0.27), Shapes.material(Color.WHITE))
 	refresh()
 
 func part_weight(arrays: Array, vertex: int, part: StringName) -> float:
@@ -45,11 +50,12 @@ func part_weight(arrays: Array, vertex: int, part: StringName) -> float:
 		var bone := instance.skin.get_bind_bone(bind)
 		var bind_name := instance.skin.get_bind_name(bind)
 		var name: StringName = bind_name if not bind_name.is_empty() else actor.imported_skeleton.get_bone_name(bone)
-		if (part == &"head" and name == &"head") or (part == &"hand" and name == &"hand_R") or (part == &"leg" and name in [&"thigh_L", &"calf_L", &"foot_L"]):
+		if (part == &"head" and name == &"head") or (part == &"arm" and name in [&"arm_R", &"forearm_R", &"hand_R"]) or (part == &"leg" and name in [&"thigh_L", &"calf_L", &"foot_L"]):
 			total += weights[vertex * influence_count + i]
 	return total
 
 func refresh() -> void:
+	if arm_cap != null: arm_cap.visible = missing[&"arm"]
 	if original == null:
 		for part in legacy_nodes: legacy_nodes[part].visible = not missing[part]
 		return
@@ -71,7 +77,7 @@ func restore(part: StringName) -> void:
 	missing[part] = false
 	refresh()
 
-# Recoverable meshes use the exact imported head/hand, with their original materials.
+# Recoverable meshes use the exact imported head/arm, with their original materials.
 func loose_mesh(part: StringName) -> ArrayMesh:
 	var mesh := ArrayMesh.new()
 	if original == null:
@@ -83,7 +89,16 @@ func loose_mesh(part: StringName) -> ArrayMesh:
 		for node: MeshInstance3D in nodes:
 			var transform := actor.visual.global_transform.affine_inverse() * node.global_transform
 			transform.origin -= CENTERS[part]
-			for surface in range(node.mesh.get_surface_count()): builder.append_from(node.mesh, surface, transform)
+			for surface in range(node.mesh.get_surface_count()):
+				var arrays := node.mesh.surface_get_arrays(surface)
+				var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+				var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+				var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX] if arrays[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+				if indices.is_empty():
+					for i in range(vertices.size()): indices.append(i)
+				for vertex in indices:
+					builder.set_normal((transform.basis.inverse().transposed() * normals[vertex]).normalized())
+					builder.add_vertex(transform * vertices[vertex])
 		builder.set_material(Shapes.material(Color.WHITE))
 		builder.commit(mesh)
 		return mesh
@@ -108,7 +123,7 @@ func loose_mesh(part: StringName) -> ArrayMesh:
 	return mesh
 
 func anchor(part: StringName) -> Vector3:
-	var bone: StringName = &"head" if part == &"head" else &"hand_R"
+	var bone: StringName = &"head" if part == &"head" else &"arm_R"
 	if actor.imported_skeleton == null: return legacy_nodes[part].global_position
 	actor.imported_skeleton.force_update_all_bone_transforms()
 	var index := actor.bone_ids[bone]

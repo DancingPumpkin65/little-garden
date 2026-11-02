@@ -13,7 +13,7 @@ func run() -> void:
  await RenderingServer.frame_post_draw
  root.get_texture().get_image().save_png("res://artifacts/jump-pose.png")
  for i in range(70): await physics_frame
- game.say("That little seed has been waiting for you.")
+ game.say("Had l-bab mkhebbi chi 7aja... jerrbi ttfa7a.")
  for i in range(16): await physics_frame
  game.set_physics_process(false)
  game.camera.position = Vector3(5, 4.2, 5)

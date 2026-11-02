@@ -3,6 +3,9 @@ extends "res://scripts/legacy/procedural_character.gd"
 
 const MODEL := preload("res://assets/characters/reference_character.glb")
 const COMPANION_MODEL := preload("res://assets/characters/companion_character.glb")
+enum Hop { REST, CROUCH, AIR, LAND }
+var hop := Hop.REST
+var hop_clock := 0.0
 var follow_target: Node3D
 var imported_skeleton: Skeleton3D
 var action := ""
@@ -65,20 +68,56 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if npc and follow_target != null:
-		var offset := follow_target.global_position - global_position
-		offset.y = 0
-		var moving := offset.length() > 2.4
-		if is_on_floor() and moving: velocity.y = 3.8
-		if not is_on_floor(): velocity.y -= 18 * delta
-		var direction := offset.normalized() if moving else Vector3.ZERO
-		velocity.x = move_toward(velocity.x, direction.x * 2.2, delta * 9)
-		velocity.z = move_toward(velocity.z, direction.z * 2.2, delta * 9)
-		move_and_slide()
-		if moving: visual.rotation.y = lerp_angle(visual.rotation.y, atan2(offset.x, offset.z), delta * 7)
-		animate_pose(delta, 0.0, is_on_floor())
+		update_companion_hop(delta)
 		return
 	super._physics_process(delta)
 	if npc and imported_skeleton != null: apply_joint_poses()
+
+# One supporting leg compresses, pushes off, tucks in flight, then absorbs landing.
+func update_companion_hop(delta: float) -> void:
+	hop_clock += delta
+	var offset := follow_target.global_position - global_position
+	offset.y = 0
+	var moving := offset.length() > 2.4
+	if hop == Hop.REST and moving and is_on_floor():
+		hop = Hop.CROUCH
+		hop_clock = 0
+	if hop == Hop.CROUCH and hop_clock >= 0.16:
+		hop = Hop.AIR
+		hop_clock = 0
+		velocity.y = 4.1
+	if not is_on_floor(): velocity.y -= 18 * delta
+	var direction := offset.normalized() if moving and hop == Hop.AIR else Vector3.ZERO
+	velocity.x = move_toward(velocity.x, direction.x * 2.6, delta * 14)
+	velocity.z = move_toward(velocity.z, direction.z * 2.6, delta * 14)
+	move_and_slide()
+	if hop == Hop.AIR and is_on_floor():
+		hop = Hop.LAND
+		hop_clock = 0
+	if hop == Hop.LAND and hop_clock >= 0.13:
+		hop = Hop.REST
+		hop_clock = 0
+	if moving: visual.rotation.y = lerp_angle(visual.rotation.y, atan2(offset.x, offset.z), delta * 7)
+	animate_pose(delta, 0.0, true)
+	var bend := 0.0
+	if hop == Hop.CROUCH: bend = smoothstep(0, 0.16, hop_clock)
+	if hop == Hop.LAND: bend = 1 - smoothstep(0, 0.13, hop_clock)
+	if hop == Hop.AIR:
+		right_leg.rotation.x = -0.24 + 0.24 * clampf(-velocity.y / 4.1, -1, 1)
+		knees[1].rotation.x = 0.35 + 0.65 * sin(clampf(hop_clock / 0.46, 0, 1) * PI)
+		left_arm.rotation.x = -0.25
+		left_arm.rotation.z = -0.95
+		elbows[0].rotation.x = -0.35
+	else:
+		right_leg.rotation.x = -0.16 * bend
+		knees[1].rotation.x = 0.42 * bend
+		left_arm.rotation.x = 0.22 * bend
+		left_arm.rotation.z = -0.55
+	left_leg.rotation.x = 0
+	knees[0].rotation.x = 0
+	visual.position.y = -0.055 * bend
+	visual.rotation.z = -0.065 if hop == Hop.AIR else -0.025
+	apply_joint_poses()
 
 # Blender bones use different local axes; convert the existing body-space rotations.
 func pose_bone(name: StringName, axis: Vector3, angle: float, spread_delta: float = 0.0) -> void:
