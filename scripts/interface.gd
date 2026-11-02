@@ -1,6 +1,7 @@
 class_name GardenInterface
 extends CanvasLayer
 
+signal letter_spoken(letter: String)
 signal begin
 signal resumed
 signal restarted
@@ -13,6 +14,9 @@ var bubble := PanelContainer.new()
 var bubble_tail := Polygon2D.new()
 var charge := ProgressBar.new()
 var finish: Label
+var typing_clock := 0.0
+var spoken_letters := 0
+const LETTER_INTERVAL := 0.034
 
 func label(text: String, size: int, color := Color("faf5e9")) -> Label:
 	var node := Label.new()
@@ -127,6 +131,9 @@ func _ready() -> void:
 
 func speech(text: String) -> void:
 	dialogue.text = text.trim_prefix("Ari: ")
+	dialogue.visible_characters = 0
+	typing_clock = 0
+	spoken_letters = 0
 	bubble.visible = not text.is_empty()
 	bubble.reset_size()
 
@@ -139,3 +146,18 @@ func place_speech(camera: Camera3D, world_position: Vector3) -> void:
 	bubble.visible = bubble.visible and Rect2(Vector2.ZERO, viewport_size).has_point(point)
 	bubble.position = Vector2(clampf(point.x - bubble.size.x / 2, 16, viewport_size.x - bubble.size.x - 16), maxf(16, point.y - bubble.size.y - 22))
 	bubble_tail.position = Vector2(clampf(point.x - bubble.position.x, 24, bubble.size.x - 24), bubble.size.y)
+
+func _process(delta: float) -> void:
+	if get_tree().paused or dialogue.visible_characters >= dialogue.text.length(): return
+	typing_clock += delta
+	while typing_clock >= LETTER_INTERVAL and dialogue.visible_characters < dialogue.text.length():
+		typing_clock -= LETTER_INTERVAL
+		var letter := dialogue.text.substr(dialogue.visible_characters, 1)
+		dialogue.visible_characters += 1
+		if letter in [".", "!", "?"]:
+			typing_clock -= 0.17
+		elif letter in [",", ":", ";"]:
+			typing_clock -= 0.07
+		elif not letter.strip_edges().is_empty():
+			spoken_letters += 1
+			if spoken_letters % 2 == 1: letter_spoken.emit(letter)

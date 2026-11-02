@@ -49,11 +49,13 @@ func _ready() -> void:
 	player.position = Vector3(0, 0.2, 5.7)
 	add_child(player)
 	friend.npc = true
-	friend.position = Vector3(2.4, 0.05, -3.1)
+	friend.position = Vector3(2.4, 0.02, -3.1)
 	friend.rotation.y = -0.5
 	add_child(friend)
 	add_child(sound)
 	add_child(hud)
+	hud.letter_spoken.connect(sound.murmur)
+	player.jumped.connect(sound.jump)
 	hud.begin.connect(start)
 	hud.resumed.connect(func(): set_pause(false))
 	hud.restarted.connect(func(): get_tree().reload_current_scene())
@@ -141,7 +143,7 @@ func start() -> void:
 
 func say(text: String, seconds: float = 4.0) -> void:
 	hud.speech(text)
-	speech_time = seconds
+	speech_time = maxf(seconds, text.length() * 0.045 + 2.0)
 
 func set_pause(value: bool) -> void:
 	pause = value
@@ -272,7 +274,7 @@ func _physics_process(delta: float) -> void:
 	if not player.action.is_empty(): player.drive = Vector3.ZERO
 	update_action(delta)
 	if held:
-		if player.action != "throw":
+		if charging:
 			player.visual.rotation.y = lerp_angle(player.visual.rotation.y, atan2(forward().x, forward().z), delta * 10)
 		ball.global_position = player.fruit_position()
 		ball.rotation = Vector3(0, elapsed * 0.5, 0)

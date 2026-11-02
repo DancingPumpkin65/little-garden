@@ -1,6 +1,8 @@
 class_name ProceduralGardenCharacter
 extends CharacterBody3D
 
+signal jumped
+
 var visual := Node3D.new()
 var left_arm := Node3D.new()
 var right_arm := Node3D.new()
@@ -20,6 +22,7 @@ var sprint := false
 var npc := false
 
 func _ready() -> void:
+	safe_margin = 0.001
 	var collision := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
 	capsule.radius = 0.3
@@ -123,13 +126,15 @@ func _physics_process(delta: float) -> void:
 	if npc:
 		gait += delta
 		head.rotation.z = sin(gait * 1.4) * 0.025
-		visual.position.y = sin(gait * 2) * 0.015
+		visual.position.y = 0
 		return
 	var speed := 5.4 if sprint else 3.5
 	velocity.x = move_toward(velocity.x, drive.x * speed, delta * 18)
 	velocity.z = move_toward(velocity.z, drive.z * speed, delta * 18)
 	if not is_on_floor(): velocity.y -= 18 * delta
-	if jump_requested and is_on_floor(): velocity.y = 6.4
+	if jump_requested and is_on_floor():
+		velocity.y = 6.4
+		jumped.emit()
 	jump_requested = false
 	move_and_slide()
 	var planar_speed := Vector2(velocity.x, velocity.z).length()
@@ -147,15 +152,18 @@ func animate_pose(delta: float, stride: float, grounded: bool = true) -> void:
 	for i in range(2):
 		var phase := gait + i * PI
 		var leg := left_leg if i == 0 else right_leg
-		var hip := -cos(phase) * amplitude * stride if grounded else -0.18
-		var knee := pow(maxf(0, -sin(phase)), 1.5) * (1.05 if sprint else 0.7) * stride if grounded else 0.5
+		var hip := -cos(phase) * amplitude * stride if grounded else (-0.65 if i == 0 else 0.55)
+		var knee := pow(maxf(0, -sin(phase)), 1.5) * (1.05 if sprint else 0.7) * stride if grounded else (0.55 if i == 0 else 0.85)
 		leg.rotation.x = lerpf(leg.rotation.x, hip, blend)
 		knees[i].rotation.x = lerpf(knees[i].rotation.x, knee, blend)
 		elbows[i].rotation.x = lerpf(elbows[i].rotation.x, -0.6 if carrying else -0.16 - stride * 0.12, blend)
-	left_arm.rotation.x = lerpf(left_arm.rotation.x, -0.95 if carrying else cos(gait) * 0.38 * stride, blend)
-	right_arm.rotation.x = lerpf(right_arm.rotation.x, -0.95 if carrying else -cos(gait) * 0.38 * stride, blend)
+	left_arm.rotation.x = lerpf(left_arm.rotation.x, (-0.95 if carrying else cos(gait) * 0.38 * stride) if grounded else -2.25, blend)
+	right_arm.rotation.x = lerpf(right_arm.rotation.x, (-0.95 if carrying else -cos(gait) * 0.38 * stride) if grounded else (-2.25 if carrying else -2.05), blend)
 	left_arm.rotation.z = -0.13 if carrying else -0.45
 	right_arm.rotation.z = 0.13 if carrying else 0.45
+	if not grounded:
+		left_arm.rotation.z = -0.25
+		right_arm.rotation.z = 0.25
 	visual.position.y = lerpf(visual.position.y, (1.0 - cos(gait * 2)) * 0.018 * stride if grounded else 0.0, blend)
 	visual.rotation.z = lerpf(visual.rotation.z, sin(gait) * 0.018 * stride, blend)
 	head.rotation.z = sin(gait) * 0.01 * stride

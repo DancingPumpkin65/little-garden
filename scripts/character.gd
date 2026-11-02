@@ -16,6 +16,7 @@ func _ready() -> void:
 	if "--procedural-character" in OS.get_cmdline_user_args():
 		super._ready()
 		return
+	safe_margin = 0.001
 	var collision := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
 	capsule.radius = 0.3
@@ -35,11 +36,16 @@ func _ready() -> void:
 		bone_ids[name] = index
 		bone_bases[name] = imported_skeleton.get_bone_global_rest(index).basis.orthonormalized()
 		rest_rotations[name] = imported_skeleton.get_bone_pose_rotation(index)
+	var sole_height := INF
 	for node in model_root.find_children("*", "MeshInstance3D", true, false):
 		var instance := node as MeshInstance3D
+		var bounds: AABB = (model_root.global_transform.affine_inverse() * instance.global_transform) * instance.get_aabb()
+		sole_height = minf(sole_height, bounds.position.y)
 		for surface in range(instance.mesh.get_surface_count()):
 			var material := instance.mesh.surface_get_material(surface) as BaseMaterial3D
 			material.disable_receive_shadows = true
+	# Mesh soles and capsule bottom share the same origin.
+	model_root.position.y = -sole_height
 	# Empty pose nodes retain the controller's existing animation state contract.
 	visual.add_child(head)
 	for limb in [left_arm, right_arm, left_leg, right_leg]: visual.add_child(limb)

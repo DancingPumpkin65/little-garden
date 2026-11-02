@@ -1,6 +1,6 @@
 # A little garden
 
-A standalone Godot 4.7.2 playable scene, separate from Bewerbung. Original low-poly 3D characters and a white-to-colour garden, inspired by the broad visual approach of Bryson McBeeâ€™s birthday game. No assets from his game are used.
+A standalone Godot 4.7.2 playable scene, separate from Bewerbung. Original low-poly 3D characters and a white-to-colour garden, inspired by the broad visual approach of Bryson McBeeÃ¢â‚¬â„¢s birthday game. No assets from his game are used.
 
 Double-click **Play.cmd** to play. **Open editor.cmd** opens the project for editing. These launchers use the portable Godot runtime installed at `C:/Users/ouass/.local/share/godot-4.7.2`.
 
@@ -31,3 +31,5 @@ Character QA follows `references/README.md`, using screenshots of the original g
 Imported-model checks: run `--headless --path . --quit-after 60 --script tests/imported_character.gd`. The fallback geometry check is `tests/character_shape.gd`. `tests/imported_character_render.gd` measures 240 uncapped rendered frames after warmup in the garden scene; a local AMD Radeon compatibility-renderer run with both refined models averaged 2.45 ms per frame. This is a small local benchmark, not a frame-rate guarantee on other machines.
 
 Interaction regression: run `--headless --fixed-fps 60 --path . --quit-after 180 --script tests/fruit_attachment.gd`. This checks the reach, two-handed grip, camera yaw/pitch, retained fruit during windup, release keyframe and follow-through. `tests/capture_interactions.gd` captures those poses and the speech bubble in the native renderer. Dialogue follows Ari in a white bubble with a black shadow; bottom control hints are removed. The fruit follows the imported wrist bones and releases 0.4 seconds into the 0.7-second throw. The trajectory preview uses that release pose.
+
+Dialogue types at about 29 letters per second with punctuation pauses and quiet generated murmurs. Jumping raises the arms, splits the legs and plays a short generated takeoff sound. Carrying follows movement; holding the aim button turns toward the camera direction. Visible mesh soles align with the collision floor. `tests/dialogue_movement.gd` checks typing/replacement/pause, murmur events and PCM output, floor contact, carrying direction, jump pose and landing. Run it headlessly with `--fixed-fps 60 --quit-after 350`. `tests/capture_jump_dialogue.gd` captures the real jump and partial dialogue with the native renderer.

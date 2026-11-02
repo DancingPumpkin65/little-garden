@@ -29,7 +29,7 @@ func _ready() -> void:
 	shape.radius = 11.45
 	shape.height = 1.1
 	col.shape = shape
-	floor_body.position.y = -0.5
+	floor_body.position.y = -0.53
 	floor_body.add_child(col)
 	add_child(floor_body)
 	# Raised stones mark the route without adding a HUD arrow.
