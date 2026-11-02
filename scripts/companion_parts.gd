@@ -1,7 +1,7 @@
 class_name GardenCompanionParts
 extends RefCounted
 
-const CENTERS := {&"head": Vector3(0, 2.145, 0.015), &"arm": Vector3(0.52, 1.43, 0.018)}
+const CENTERS := {&"head": Vector3(0, 2.145, 0.015), &"arm": Vector3(0.52, 1.43, 0.018), &"leg": Vector3(-0.20, 0.64, 0.05)}
 var missing := {&"head": true, &"arm": true, &"leg": true}
 var instance: MeshInstance3D
 var original: Mesh
@@ -123,7 +123,7 @@ func loose_mesh(part: StringName) -> ArrayMesh:
 	return mesh
 
 func anchor(part: StringName) -> Vector3:
-	var bone: StringName = &"head" if part == &"head" else &"arm_R"
+	var bone: StringName = &"head" if part == &"head" else &"thigh_L" if part == &"leg" else &"arm_R"
 	if actor.imported_skeleton == null: return legacy_nodes[part].global_position
 	actor.imported_skeleton.force_update_all_bone_transforms()
 	var index := actor.bone_ids[bone]

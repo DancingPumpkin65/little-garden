@@ -39,16 +39,23 @@ var carried_part: GardenRecoveryPart
 var throw_in_flight := false
 var flight_time := 0.0
 var missed_throws := 0
-var intro_time := 0.0
+var dialogue_queue: Array[String] = []
+var transitioning := false
+var journey := GardenJourney.new()
+var dust := GardenDust.new()
+var friend_dust := GardenDust.new()
+const INTRO: Array[String] = [
+	"Salam Salma, labas?",
+	"3arfek 3iyana yala jaya men lkhadma... :(",
+	"M7tajek t3awnini l9a body parts dyawli :)",
+	"Khassek thazi limouna li 7dak otlu7iha f dwara O"
+]
 const MISS_JOKES: Array[String] = [
-	"Hadi passe zwina... ghir ma kayn 7ta wa7ed tma.",
-	"Da2ira hna. Ttfa7a 3lach mchat tsiyye7?",
-	"Ma 3ndich dra3 bach n7kem 3lik. 3awdi, ana m3ak.",
-	"Ana b rejla wa7da, w ttfa7a katjri kter menni!",
-	"9riba! Ghir l-bab ma kay7sebch les passes.",
-	"Hadi kanet l-tas5in. Daba bdat l-match, yak?",
-	"Chwiya bchwiya. 7ta ana mazal kan9elleb 3la tawazon.",
-	"Ttfa7a bghat tdir tour. Nrej3oha l-mawdo3?"
+	"Zgaltiha... Yakma ydik kaydarouk?",
+	"3awtani majbtihach :/ wa9ila fik n3ass...",
+	"Ma3lich had lmara tjibiha, \"TALTA TABTA\"",
+	"Salma Ez Zyry...",
+	"-_-"
 ]
 var seed_home := Vector3(-1.4, 0.7, 3.7)
 
@@ -66,7 +73,7 @@ func _ready() -> void:
 	player.position = Vector3(0, 0.2, 5.7)
 	add_child(player)
 	friend.npc = true
-	friend.position = Vector3(1.6, 0.02, 3.6)
+	friend.position = Vector3(2.3, 0.02, 2.1)
 	friend.rotation.y = -0.5
 	add_child(friend)
 	companion_parts = GardenCompanionParts.new(friend)
@@ -79,6 +86,17 @@ func _ready() -> void:
 		recovery_parts.append(part)
 	add_child(sound)
 	add_child(hud)
+	dust.process_mode = Node.PROCESS_MODE_PAUSABLE
+	add_child(dust)
+	dust.setup(player)
+	friend_dust.process_mode = Node.PROCESS_MODE_PAUSABLE
+	add_child(friend_dust)
+	friend_dust.setup(friend)
+	journey.process_mode = Node.PROCESS_MODE_PAUSABLE
+	add_child(journey)
+	journey.setup(player, friend, companion_parts, world, camera, hud.curtain)
+	journey.dialogue_requested.connect(say_sequence)
+	journey.transition_lock.connect(set_transition_locked)
 	hud.letter_spoken.connect(sound.murmur)
 	player.jumped.connect(sound.jump)
 	hud.begin.connect(start)
@@ -87,7 +105,7 @@ func _ready() -> void:
 	hud.mute_changed.connect(func(muted: bool): AudioServer.set_bus_mute(0, muted))
 	var env_node := WorldEnvironment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color("20212b")
+	environment.background_color = Color.BLACK
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment.ambient_light_color = Color.WHITE
 	environment.ambient_light_energy = 0.32
@@ -108,7 +126,7 @@ func _ready() -> void:
 	add_child(camera)
 	camera.look_at(Vector3(0, 0.5, 0))
 	build_seed()
-	var dot_mat := Shapes.material(Color("f4ce83"))
+	var dot_mat := Shapes.material(Color("aaaaaa"))
 	dot_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	for i in range(20):
 		var dot := Shapes.sphere(self, Vector3.ZERO, Vector3.ONE * 0.075, dot_mat)
@@ -155,8 +173,8 @@ func build_seed() -> void:
 	ball.add_child(col)
 	ball.add_child(seed_visual)
 	Shapes.sphere(seed_visual, Vector3.ZERO, Vector3.ONE * 0.5, Shapes.material(Color("e4b55c")))
-	Shapes.cylinder(seed_visual, Vector3(0, 0.31, 0), 0.025, 0.18, Shapes.material(Color("729d68")))
-	var leaf := Shapes.sphere(seed_visual, Vector3(0.1, 0.38, 0), Vector3(0.25, 0.08, 0.13), Shapes.material(Color("8db276")))
+	Shapes.cylinder(seed_visual, Vector3(0, 0.31, 0), 0.025, 0.18, Shapes.material(Color("555555")))
+	var leaf := Shapes.sphere(seed_visual, Vector3(0.1, 0.38, 0), Vector3(0.25, 0.08, 0.13), Shapes.material(Color("888888")))
 	leaf.rotation.z = 0.4
 	add_child(ball)
 	ball.position = seed_home
@@ -166,12 +184,37 @@ func start() -> void:
 	hud.title_screen.hide()
 	if not testing and screenshot_mode.is_empty(): Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	friend.follow_target = player if not screenshot_mode.begins_with("characters") else null
-	intro_time = 6.5
-	say("Wa9ila drt update ghalet... rasi, dra3i w rejli tms7o. B9iti lia nti.", 6)
+	say_sequence(INTRO)
+
+func set_transition_locked(value: bool) -> void:
+	transitioning = value
+	if value:
+		yaw = 0
+		pitch = 0.6
+		player.drive = Vector3.ZERO
+		player.jump_requested = false
+		charging = false
+		dialogue_queue.clear()
+		hud.speech("")
+		speech_time = 0
 
 func say(text: String, seconds: float = 4.0) -> void:
+	dialogue_queue.clear()
 	hud.speech(text)
 	speech_time = maxf(seconds, text.length() * 0.045 + 2.0)
+
+func say_sequence(lines: Array[String]) -> void:
+	dialogue_queue = lines.duplicate()
+	next_dialogue()
+
+func next_dialogue() -> void:
+	if dialogue_queue.is_empty():
+		hud.speech("")
+		journey.dialogue_finished()
+		return
+	var line := dialogue_queue.pop_front() as String
+	hud.speech(line)
+	speech_time = maxf(3.0, line.length() * 0.045 + 1.7)
 
 func set_pause(value: bool) -> void:
 	pause = value
@@ -183,15 +226,15 @@ func set_pause(value: bool) -> void:
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_ESCAPE and stage != Stage.TITLE: set_pause(not pause)
-		if pause or stage == Stage.TITLE: return
+		if event.keycode == KEY_ESCAPE and stage != Stage.TITLE and not transitioning: set_pause(not pause)
+		if pause or transitioning or stage == Stage.TITLE: return
 		if event.keycode == KEY_E: interact()
 		if event.keycode == KEY_SPACE and player.action.is_empty(): player.jump_requested = true
 		if event.keycode == KEY_R and stage == Stage.SEED: recover()
-	if pause or stage == Stage.TITLE: return
+	if pause or transitioning or stage == Stage.TITLE: return
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_RIGHT: orbiting = event.pressed
-		if event.button_index == MOUSE_BUTTON_LEFT and held and player.action.is_empty():
+		if event.button_index == MOUSE_BUTTON_LEFT and (held or carried_part != null) and player.action.is_empty():
 			if event.pressed:
 				charging = true
 				power = 0
@@ -201,9 +244,11 @@ func _input(event: InputEvent) -> void:
 		pitch = clampf(pitch + event.relative.y * 0.003, 0.18, 1.15)
 
 func interact() -> void:
+	if transitioning or journey.chapter != GardenJourney.Chapter.FIRST: return
 	if not player.action.is_empty(): return
 	if carried_part != null:
 		if player.position.distance_to(friend.position) < 3:
+			charging = false
 			carried_part.put_back()
 			carried_part = null
 		return
@@ -215,11 +260,11 @@ func interact() -> void:
 			player.action_phase = 0
 			action_time = 0
 			player.visual.rotation.y = atan2(part.position.x - player.position.x, part.position.z - player.position.z)
-			say("Hada dra3i bse7! Jibih lia... bla ma trmih 7ta howa!", 5)
+			say("Jibi liya lyed dyali o3tiha liya... 3afaak", 5)
 			return
 	if stage == Stage.PATH and player.position.distance_to(Vector3(0, 0, GardenWorld.EXIT_Z)) < 2.2:
 		world.open_exit()
-		say("L-bab t7ell... wach morah rasi, wla chi mochkil jdid? Yallah nchofo.", 6)
+		world.reveal_passage()
 		return
 	if stage == Stage.SEED and not held and player.position.distance_to(ball.position) < 2.0:
 		if throw_in_flight: missed_throw()
@@ -231,16 +276,18 @@ func interact() -> void:
 		ball.collision_layer = 0
 		ball.collision_mask = 0
 		sound.chime(392)
-		intro_time = 0
-		say("F wast da2ira, bchwiya. Ila rje3 dra3i, n3tik high-five... ila b9at fik ti9a!", 6)
-	elif player.position.distance_to(friend.position) < 2.7:
-		say("L-bab t7ell. Daba khasni ghir rasi bach n3ref fin ghadi!" if stage == Stage.PATH else "Dra3i kaytsennani. Jibih lia, ana ma n9derch nmd yddi!" if stage in [Stage.REVEAL, Stage.GARDEN] else "Had l-bab msdoud bla serrure... jerrbi ttfa7a f da2ira.", 6)
+		if dialogue_queue.is_empty(): say("Khassek thazi limouna li 7dak otlu7iha f dwara O", 5)
+	elif player.position.distance_to(friend.position) < 3:
+		if stage == Stage.PATH: say("Yala namchiw 3end lbab")
+		elif stage in [Stage.REVEAL, Stage.GARDEN]: say("Jibi liya lyed dyali o3tiha liya... 3afaak")
+		else: say_sequence(INTRO)
 
 func part_returned(_kind: StringName) -> void:
 	sound.chime(783.99)
 	stage = Stage.PATH
-	world.open_exit()
-	say("Rje3 dra3i! ... W l-bab t7ell bo7do. Chkon li kayjme3ni men l-jiha lakhra?", 8)
+	friend.celebration = 3.5
+	var lines: Array[String] = ["Nice! Db khassna l9aw rjel dyali", "Yala namchiw 3end lbab"]
+	say_sequence(lines)
 
 func forward() -> Vector3:
 	return Vector3(-sin(yaw), 0, -cos(yaw))
@@ -249,7 +296,7 @@ func launch_velocity() -> Vector3:
 	return forward() * lerpf(4.8, 10.0, power) + Vector3.UP * lerpf(2.5, 4.5, power)
 
 func throw_seed() -> void:
-	if not held or not player.action.is_empty(): return
+	if (not held and carried_part == null) or not player.action.is_empty(): return
 	throw_velocity = launch_velocity()
 	player.visual.rotation.y = atan2(forward().x, forward().z)
 	charging = false
@@ -270,18 +317,23 @@ func update_action(delta: float) -> void:
 			player.carrying = true
 	player.apply_joint_poses()
 	if player.action == "throw" and action_time >= THROW_RELEASE and not action_released:
-		ball.global_position = player.fruit_position()
-		ball.freeze = false
-		ball.collision_layer = 2
-		ball.collision_mask = 1
-		ball.linear_velocity = throw_velocity
-		ball.angular_velocity = Vector3(3, 1, 2)
-		held = false
+		if carried_part != null:
+			carried_part.throw_part(throw_velocity)
+			carried_part = null
+			say("Matb9ayech tla3bi biha -_-", 4)
+		else:
+			ball.global_position = player.fruit_position()
+			ball.freeze = false
+			ball.collision_layer = 2
+			ball.collision_mask = 1
+			ball.linear_velocity = throw_velocity
+			ball.angular_velocity = Vector3(3, 1, 2)
+			held = false
+			throw_in_flight = true
+			flight_time = 0
 		player.carrying = false
 		action_released = true
 		lost_time = 0
-		throw_in_flight = true
-		flight_time = 0
 		sound.chime(329.63)
 	if action_time >= ACTION_DURATION:
 		player.action = ""
@@ -306,8 +358,7 @@ func recover() -> void:
 func missed_throw() -> void:
 	if not throw_in_flight: return
 	throw_in_flight = false
-	intro_time = 0
-	say(MISS_JOKES[missed_throws % MISS_JOKES.size()], 5)
+	say(MISS_JOKES[mini(missed_throws, MISS_JOKES.size() - 1)], 5)
 	missed_throws += 1
 
 func planted() -> void:
@@ -321,30 +372,27 @@ func planted() -> void:
 	charging = false
 	for i in range(recovery_parts.size()):
 		recovery_parts[i].emerge(world.bowl + Vector3(0, 0.1, 0), world.bowl + Vector3(0, 1.3, 0.1))
-	say("Waaa... dra3i! Da2ira katrje3 lia chno da3. Jibih lia, nchofo wach l-bab yfhem l-ichara.", 8)
+	var lines: Array[String] = ["Bravo! Makuntch 3aref rak sportif! :3" if missed_throws <= 1 else "3la slama... Bravo 3lik!", "Jibi liya lyed dyali o3tiha liya... 3afaak"]
+	say_sequence(lines)
 	sound.chime(659.25)
 
 func _physics_process(delta: float) -> void:
 	if pause: return
 	elapsed += delta
-	if intro_time > 0:
-		intro_time -= delta
-		if intro_time <= 0 and stage == Stage.SEED and not held:
-			say("Dak l-bab ma kayt7ellch b zher. Jerrbi trmi had ttfa7a f da2ira... nchofo chno mkhebbi.", 8)
 	if speech_time > 0:
 		speech_time -= delta
-		if speech_time <= 0: hud.speech("")
-	if stage != Stage.TITLE and not testing:
+		if speech_time <= 0: next_dialogue()
+	if stage != Stage.TITLE and not testing and not transitioning:
 		var input := Vector2(
 			float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)),
 			float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
 		player.drive = Vector3(input.x, 0, input.y).rotated(Vector3.UP, yaw).limit_length()
 		player.sprint = Input.is_physical_key_pressed(KEY_SHIFT)
 	if stage == Stage.TITLE: player.drive = Vector3.ZERO
-	if friend.position.y < -4:
+	if journey.chapter == GardenJourney.Chapter.FIRST and friend.position.y < -4:
 		friend.position = player.position + Vector3(-1, 0.2, 1)
 		friend.velocity = Vector3.ZERO
-	if player.position.y < -5:
+	if journey.chapter == GardenJourney.Chapter.FIRST and not transitioning and player.position.y < -5:
 		player.position = Vector3(0, 0.2, 5.7)
 		player.velocity = Vector3.ZERO
 		if held: recover()
@@ -353,7 +401,7 @@ func _physics_process(delta: float) -> void:
 			carried_part = null
 			player.carrying = false
 			player.action = ""
-	if not player.action.is_empty(): player.drive = Vector3.ZERO
+	if not player.action.is_empty() or transitioning: player.drive = Vector3.ZERO
 	update_action(delta)
 	if held:
 		if charging:
@@ -361,7 +409,7 @@ func _physics_process(delta: float) -> void:
 		ball.global_position = player.fruit_position()
 		ball.rotation = Vector3(0, elapsed * 0.5, 0)
 		if charging: power = minf(1.0, power + delta * 0.65)
-	if stage == Stage.SEED and not held and player.action != "pickup":
+	if journey.chapter == GardenJourney.Chapter.FIRST and stage == Stage.SEED and not held and player.action != "pickup":
 		lost_time += delta
 		if throw_in_flight: flight_time += delta
 		var near_bowl := Vector2(ball.position.x - world.bowl.x, ball.position.z - world.bowl.z).length() < 0.8
@@ -369,17 +417,30 @@ func _physics_process(delta: float) -> void:
 		elif throw_in_flight and flight_time > 0.55 and ball.position.y < 0.36:
 			missed_throw()
 		elif ball.position.y < -4 or (lost_time > 5 and ball.position.distance_to(seed_home) > 1): recover()
-	if stage in [Stage.REVEAL, Stage.GARDEN, Stage.PATH, Stage.COMPLETE] and bloom < 1:
+	if journey.chapter == GardenJourney.Chapter.FIRST and stage in [Stage.REVEAL, Stage.GARDEN, Stage.PATH, Stage.COMPLETE] and bloom < 1:
 		bloom = minf(1, bloom + delta / 4.0)
 		world.reveal(smoothstep(0, 1, bloom))
 		if bloom >= 1:
 			if stage == Stage.REVEAL: stage = Stage.GARDEN
 			sound.chime(783.99)
-	if stage == Stage.PATH and world.door_open and player.position.z < GardenWorld.EXIT_Z - 0.55 and absf(player.position.x) < 1.5:
-		stage = Stage.COMPLETE
-		say("Dra3 rje3, walakin chkoun khba rasi? Yallah... had l-9issa mazal ma salatch.", 7)
-	environment.background_color = Color("20212b").lerp(Color("b9d2d1"), bloom)
+	if journey.chapter == GardenJourney.Chapter.FIRST:
+		if stage == Stage.PATH and player.position.distance_to(Vector3(0, 0, GardenWorld.EXIT_Z)) < 3:
+			world.open_exit()
+			world.reveal_passage()
+		if stage == Stage.PATH and world.door_open and player.position.z < GardenWorld.EXIT_Z - 7 and absf(player.position.x) < 1.25:
+			stage = Stage.COMPLETE
+			ball.hide()
+			journey.enter_gap()
+	environment.background_color = Color.BLACK
+	if friend.follow_target != null:
+		var side := 0.55 if world.passage_revealed and player.position.z < GardenWorld.EXIT_Z + 1 and journey.chapter == GardenJourney.Chapter.FIRST else 2.3
+		friend.follow_offset = (Vector3(side, 0, -3.6)).rotated(Vector3.UP, yaw)
+		if journey.chapter == GardenJourney.Chapter.FIRST and not (world.passage_revealed and player.position.z < GardenWorld.EXIT_Z + 1):
+			var goal := player.position + friend.follow_offset
+			var planar := Vector2(goal.x, goal.z).limit_length(GardenWorld.MAP_RADIUS - 0.8)
+			friend.follow_offset = Vector3(planar.x, 0, planar.y) - Vector3(player.position.x, 0, player.position.z)
 	var focus := player.position + Vector3(0, 0.7, -1)
+	if journey.chapter == GardenJourney.Chapter.GAP: focus.z -= 4
 	var offset := Vector3(0, sin(pitch) * 15.1, cos(pitch) * 15.1).rotated(Vector3.UP, yaw)
 	camera.position = camera.position.lerp(focus + offset, 1.0 - exp(-delta * 4))
 	camera.look_at(focus)
@@ -401,15 +462,18 @@ func _process(_delta: float) -> void:
 func update_hud() -> void:
 	if screenshot_mode.begins_with("characters"): return
 	if stage == Stage.TITLE: return
-	hud.place_speech(camera, friend.global_position + Vector3.UP * 2.35)
+	if friend.visible and not transitioning:
+		hud.place_speech(camera, friend.global_position + Vector3.UP * 2.35)
+	else: hud.bubble.hide()
 	hud.charge.visible = charging
 	hud.charge.value = power * 100
 
 func update_aim() -> void:
-	var origin := player.throw_origin(THROW_RELEASE / ACTION_DURATION) if held and charging else ball.position
+	var aiming := (held or carried_part != null) and charging
+	var origin := player.throw_origin(THROW_RELEASE / ACTION_DURATION) if aiming else ball.position
 	for i in range(aim_dots.size()):
 		var dot := aim_dots[i]
-		dot.visible = held and charging
+		dot.visible = aiming
 		if dot.visible:
 			var t := (i + 1) * 0.08
 			dot.position = origin + launch_velocity() * t + Vector3.DOWN * 4.9 * t * t

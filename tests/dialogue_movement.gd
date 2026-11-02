@@ -21,7 +21,10 @@ func run() -> void:
   var bounds: AABB = mesh.global_transform * mesh.get_aabb()
   soles = minf(soles, bounds.position.y)
  assert(absf(soles - 0.02) < 0.015, "visible soles rest on the visible ground")
- assert(absf(game.friend.position.y - 0.02) < 0.001 and game.friend.visual.position.y == 0, "companion stays on the ground")
+ for i in range(150):
+  if game.friend.is_on_floor() and game.friend.hop == GardenCharacter.Hop.REST: break
+  await physics_frame
+ assert(absf(game.friend.position.y - 0.02) < 0.015, "companion lands on the ground between hops")
  var jumps := [0]
  game.player.jumped.connect(func(): jumps[0] += 1)
  game.player.jump_requested = true

@@ -2,7 +2,7 @@ class_name GardenRecoveryPart
 extends Node3D
 
 signal returned(kind: StringName)
-enum State { HIDDEN, EMERGING, AVAILABLE, PICKING, CARRIED, RETURNING, RESTORED }
+enum State { HIDDEN, EMERGING, AVAILABLE, PICKING, CARRIED, THROWN, RETURNING, RESTORED }
 var state := State.HIDDEN
 var kind: StringName
 var clock := 0.0
@@ -10,6 +10,8 @@ var home := Vector3.ZERO
 var start := Vector3.ZERO
 var girl: GardenCharacter
 var companion: GardenCompanionParts
+var velocity := Vector3.ZERO
+var return_home := Vector3.ZERO
 var visual := MeshInstance3D.new()
 
 func setup(part: StringName, mesh: Mesh, owner_parts: GardenCompanionParts, player: GardenCharacter) -> void:
@@ -23,6 +25,7 @@ func setup(part: StringName, mesh: Mesh, owner_parts: GardenCompanionParts, play
 func emerge(origin: Vector3, destination: Vector3) -> void:
 	start = origin
 	home = destination
+	return_home = destination
 	global_position = origin
 	clock = 0
 	state = State.EMERGING
@@ -33,6 +36,12 @@ func pick_up() -> void:
 	state = State.CARRIED
 	scale = Vector3.ONE
 	girl.carrying = true
+
+func throw_part(impulse: Vector3) -> void:
+	state = State.THROWN
+	velocity = impulse
+	clock = 0
+	girl.carrying = false
 
 func put_back() -> void:
 	start = global_position
@@ -53,6 +62,17 @@ func _physics_process(delta: float) -> void:
 	elif state == State.CARRIED:
 		global_position = girl.fruit_position()
 		global_rotation.y = girl.visual.global_rotation.y
+	elif state == State.THROWN:
+		velocity.y -= delta * 9.8
+		global_position += velocity * delta
+		visual.rotation.x += delta * 5
+		if global_position.y < -5:
+			home = return_home
+			state = State.AVAILABLE
+		elif global_position.y < 0.55 and Vector2(global_position.x, global_position.z).length() < GardenWorld.MAP_RADIUS - 0.3:
+			home = Vector3(global_position.x, 0.55, global_position.z)
+			visual.rotation.x = 0
+			state = State.AVAILABLE
 	elif state == State.RETURNING:
 		var progress := minf(1, clock / 0.8)
 		global_position = start.lerp(companion.anchor(kind), smoothstep(0, 1, progress)) + Vector3.UP * sin(progress * PI) * 0.3

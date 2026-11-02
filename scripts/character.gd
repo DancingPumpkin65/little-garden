@@ -6,6 +6,8 @@ const COMPANION_MODEL := preload("res://assets/characters/companion_character.gl
 enum Hop { REST, CROUCH, AIR, LAND }
 var hop := Hop.REST
 var hop_clock := 0.0
+var follow_offset := Vector3.ZERO
+var celebration := 0.0
 var follow_target: Node3D
 var imported_skeleton: Skeleton3D
 var action := ""
@@ -76,9 +78,9 @@ func _physics_process(delta: float) -> void:
 # One supporting leg compresses, pushes off, tucks in flight, then absorbs landing.
 func update_companion_hop(delta: float) -> void:
 	hop_clock += delta
-	var offset := follow_target.global_position - global_position
+	var offset := follow_target.global_position + follow_offset - global_position
 	offset.y = 0
-	var moving := offset.length() > 2.4
+	var moving := offset.length() > (0.75 if follow_offset.length() > 0.1 else 2.4)
 	if hop == Hop.REST and moving and is_on_floor():
 		hop = Hop.CROUCH
 		hop_clock = 0
@@ -88,8 +90,8 @@ func update_companion_hop(delta: float) -> void:
 		velocity.y = 4.1
 	if not is_on_floor(): velocity.y -= 18 * delta
 	var direction := offset.normalized() if moving and hop == Hop.AIR else Vector3.ZERO
-	velocity.x = move_toward(velocity.x, direction.x * 2.6, delta * 14)
-	velocity.z = move_toward(velocity.z, direction.z * 2.6, delta * 14)
+	velocity.x = move_toward(velocity.x, direction.x * clampf(offset.length() * 2.5, 4.2, 14), delta * 32)
+	velocity.z = move_toward(velocity.z, direction.z * clampf(offset.length() * 2.5, 4.2, 14), delta * 32)
 	move_and_slide()
 	if hop == Hop.AIR and is_on_floor():
 		hop = Hop.LAND
@@ -117,6 +119,12 @@ func update_companion_hop(delta: float) -> void:
 	knees[0].rotation.x = 0
 	visual.position.y = -0.055 * bend
 	visual.rotation.z = -0.065 if hop == Hop.AIR else -0.025
+	if celebration > 0:
+		celebration -= delta
+		left_arm.rotation.x = -1.4 + sin(celebration * 10) * 0.65
+		right_arm.rotation.x = left_arm.rotation.x
+		left_arm.rotation.z = -0.6
+		right_arm.rotation.z = 0.6
 	apply_joint_poses()
 
 # Blender bones use different local axes; convert the existing body-space rotations.

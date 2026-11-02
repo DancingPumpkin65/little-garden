@@ -13,6 +13,7 @@ var dialogue: Label
 var bubble := PanelContainer.new()
 var bubble_tail := Polygon2D.new()
 var charge := ProgressBar.new()
+var curtain := ColorRect.new()
 var finish: Label
 var typing_clock := 0.0
 var spoken_letters := 0
@@ -130,6 +131,10 @@ func _ready() -> void:
 	mute.toggled.connect(func(value: bool): mute_changed.emit(value))
 	menu.add_child(mute)
 	pause_screen.hide()
+	curtain.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	curtain.color = Color(0, 0, 0, 0)
+	curtain.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(curtain)
 
 func speech(text: String) -> void:
 	dialogue.text = text.trim_prefix("Ari: ")
