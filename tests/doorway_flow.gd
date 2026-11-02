@@ -42,12 +42,15 @@ func run() -> void:
 	game.player.position = Vector3(0, 0.04, GardenWorld.EXIT_Z + 4)
 	game.friend.position = Vector3(0.4, 0.04, GardenWorld.EXIT_Z + 2)
 	game.yaw = 0
+	game.player.sprint = true
 	await frames(30)
 	await shot("first-door")
 	await walk_to(GardenWorld.EXIT_Z - 4)
 	assert(game.world.door_open and game.journey.prepared, "first door opens onto connected passage")
 	await walk_to(GardenJourney.ENTRY_Z + GardenWorld.PASSAGE_LENGTH / 2)
 	assert(not game.journey.arrival_gate.visible and not game.journey.near_platform.visible, "long passage looks into darkness before destination appears")
+	assert(absf(game.friend.position.x - game.player.position.x) > 1.0, "two running characters have separate lateral lanes")
+	assert(absf(game.player.position.x) < 0.25 and game.friend.position.y > -0.1, "companion does not push player sideways or fall from passage")
 	await shot("dark-passage")
 	await walk_to(GardenJourney.ENTRY_Z + 20)
 	assert(game.journey.arrival_gate.visible and not game.journey.arrival_open, "second closed door emerges from darkness")

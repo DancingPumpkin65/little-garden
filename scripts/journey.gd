@@ -92,13 +92,13 @@ func build_arrival_gate() -> void:
 	scene_root.add_child(arrival_gate)
 	arrival_gate.position.z = ENTRY_Z
 	var white := Shapes.material(Color.WHITE)
-	for x in [-1.65, 1.65]: Shapes.box(arrival_gate, Vector3(x, 2.1, 0), Vector3(0.25, 4.2, 0.3), white)
-	Shapes.box(arrival_gate, Vector3(0, 4.2, 0), Vector3(3.55, 0.25, 0.3), white)
+	for x in [-(GardenWorld.DOOR_WIDTH / 2 + 0.15), GardenWorld.DOOR_WIDTH / 2 + 0.15]: Shapes.box(arrival_gate, Vector3(x, 2.1, 0), Vector3(0.25, 4.2, 0.3), white)
+	Shapes.box(arrival_gate, Vector3(0, 4.2, 0), Vector3(GardenWorld.DOOR_WIDTH + 0.55, 0.25, 0.3), white)
 	arrival_hinge = Node3D.new()
 	arrival_gate.add_child(arrival_hinge)
-	arrival_hinge.position = Vector3(-1.5, 0.02, 0)
-	Shapes.box(arrival_hinge, Vector3(1.5, 2.0, 0), Vector3(3, 4, 0.18), white)
-	arrival_body = Shapes.collider(arrival_hinge, Vector3(1.5, 2, 0), Vector3(3, 4, 0.18))
+	arrival_hinge.position = Vector3(-GardenWorld.DOOR_WIDTH / 2, 0.02, 0)
+	Shapes.box(arrival_hinge, Vector3(GardenWorld.DOOR_WIDTH / 2, 2.0, 0), Vector3(GardenWorld.DOOR_WIDTH, 4, 0.18), white)
+	arrival_body = Shapes.collider(arrival_hinge, Vector3(GardenWorld.DOOR_WIDTH / 2, 2, 0), Vector3(GardenWorld.DOOR_WIDTH, 4, 0.18))
 	arrival_gate.hide()
 
 # The old world remains walkable until both characters pass the second door.

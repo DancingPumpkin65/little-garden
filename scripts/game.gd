@@ -34,6 +34,7 @@ var screenshot_mode := ""
 var capturing := false
 var pause := false
 var restart_pending := false
+var passage_side := 1.0
 var companion_parts: GardenCompanionParts
 var recovery_parts: Array[GardenRecoveryPart] = []
 var carried_part: GardenRecoveryPart
@@ -444,14 +445,21 @@ func _physics_process(delta: float) -> void:
 			world.open_exit()
 			world.reveal_passage()
 			journey.prepare_gap()
-		if stage == Stage.PATH and world.door_open and player.position.z < GardenJourney.ENTRY_Z and absf(player.position.x) < 1.25:
+		if stage == Stage.PATH and world.door_open and player.position.z < GardenJourney.ENTRY_Z and absf(player.position.x) < GardenWorld.PASSAGE_WIDTH / 2:
 			stage = Stage.COMPLETE
 			ball.hide()
 			journey.enter_gap()
 	environment.background_color = Color.BLACK
 	if friend.follow_target != null:
-		var on_passage := world.passage_revealed and player.position.z < GardenWorld.EXIT_Z + 1 and player.position.z > GardenJourney.ENTRY_Z
-		friend.follow_offset = Vector3(clampf(player.position.x + 0.4, -0.65, 0.65) - player.position.x, 0, -2.5) if on_passage else Vector3(2.3, 0, -3.6).rotated(Vector3.UP, yaw)
+		var on_passage := world.passage_revealed and player.position.z < GardenWorld.EXIT_Z + 6 and player.position.z > GardenJourney.ENTRY_Z
+		if on_passage:
+			# Keep distinct running lanes, independent of camera orbit.
+			if player.position.x > 0.8: passage_side = -1.0
+			elif player.position.x < -0.8: passage_side = 1.0
+			var lane_x := clampf(player.position.x + passage_side * 1.6, -1.8, 1.8)
+			friend.follow_offset = Vector3(lane_x - player.position.x, 0, -2.5)
+		else:
+			friend.follow_offset = Vector3(2.3, 0, -3.6).rotated(Vector3.UP, yaw)
 		if journey.chapter == GardenJourney.Chapter.FIRST and not (world.passage_revealed and player.position.z < GardenWorld.EXIT_Z + 1):
 			var goal := player.position + friend.follow_offset
 			var planar := Vector2(goal.x, goal.z).limit_length(GardenWorld.MAP_RADIUS - 0.8)
