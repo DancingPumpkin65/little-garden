@@ -7,3 +7,5 @@ For character changes, follow `references/README.md`: capture screenshots from B
 Keep limb surfaces continuous through knee and elbow bends. Run the actual Godot self-test documented in README after mesh, rig or interaction changes, and inspect rendered output. Screenshots are study references, not shipping game assets.
 
 For player modeling, follow `art/character/README.md`: validate Blender static views before rig/export, then check imported poses in Godot. Keep the procedural fallback available.
+
+For every contribution step, create a commit and open or update a pull request against `main` in `DancingPumpkin65/little-garden`. Use a `codex/` branch for changes. Do not merge the PR unless asked. Include validation and a visual comparison for character changes.

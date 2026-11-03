@@ -52,6 +52,11 @@ func run() -> void:
  await shot("outfit-front")
  await shot("outfit-back",Vector3(0,1.4,0),Vector3(0,0,-8))
  await shot("outfit-side",Vector3(0,1.4,0),Vector3(8,0,1))
+ if "--static-only" in OS.get_cmdline_user_args():
+  print("STATIC_RENDER_PASS independent body and garment modules, normalized weights, matching static views")
+  game.sound.silence()
+  quit()
+  return
  for actor: GardenCharacter in [game.player,game.friend]:
   actor.gait = PI*1.5
   actor.animate_pose(1,1,true)

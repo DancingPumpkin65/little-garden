@@ -2,6 +2,8 @@
 import bpy, math, sys
 from pathlib import Path
 from mathutils import Vector
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from static_shapes import torso
 ROOT=Path(__file__).resolve().parents[2]
 OUT=ROOT/'artifacts'/'wardrobe';OUT.mkdir(parents=True,exist_ok=True)
 def v(p):return Vector((p[0],-p[2],p[1]))
@@ -78,6 +80,7 @@ for variant in variants:
    else:
     side=-1 if obj.name.endswith('L') else 1;t=max(0,min(1,(1.205-point.y)/1.025));center=side*(.18+.02*t)
     point.x=center+(point.x-center)*1.06+side*.012*math.sin(t*math.pi);point.z*=1.05;point.y=height(point.y)
+   if obj.name in ['Sweater','Sweater hem']:point=torso(point)
    vert.co=v(point)
  # Keep every garment independent. One subdivision level shapes the actual silhouette.
  for obj in garments:

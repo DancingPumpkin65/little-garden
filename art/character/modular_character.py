@@ -2,6 +2,8 @@
 import bpy, bmesh, sys, json
 from pathlib import Path
 from mathutils import Vector, Matrix
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from static_shapes import body_part
 ROOT=Path(__file__).resolve().parents[2];SOURCE=ROOT/'art/character';OUT=ROOT/'artifacts/modular-review';OUT.mkdir(parents=True,exist_ok=True)
 # Reuse the existing vertex edits and wrist-rest correction, without unify_body().
 helpers={"__file__":str(SOURCE/'refine_character.py')}
@@ -68,7 +70,7 @@ for variant in variants:
     center=Vector((side*.20,.115,.085));local=point-center
     toe=max(0,min(1,(local.z+.10)/.30))
     point=Vector((center.x+local.x*(1.03+.18*toe),max(.008,height(center.y)+local.y*(.86-.10*toe)),max(-.045,center.z+local.z*1.24+.025)))
-   vert.co=blender(point)
+   vert.co=blender(body_part(name,point,vert.index))
  bpy.context.view_layer.objects.active=rig
  bpy.ops.object.mode_set(mode='EDIT')
  for bone in rig.data.edit_bones:
