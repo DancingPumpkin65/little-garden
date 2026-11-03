@@ -9,6 +9,10 @@ var hop_clock := 0.0
 var follow_offset := Vector3.ZERO
 var celebration := 0.0
 var waiting_for_arm := false
+var two_legs := false
+var directed_move := false
+var move_target := Vector3.ZERO
+var door_gesture := 0.0
 var follow_target: Node3D
 var imported_skeleton: Skeleton3D
 var action := ""
@@ -70,16 +74,33 @@ func _ready() -> void:
 	if not npc: add_head_flower()
 
 func _physics_process(delta: float) -> void:
-	if npc and follow_target != null:
-		update_companion_hop(delta)
+	if npc and (follow_target != null or directed_move):
+		if two_legs: update_companion_walk(delta)
+		else: update_companion_hop(delta)
 		return
 	super._physics_process(delta)
 	if npc and imported_skeleton != null: apply_joint_poses()
 
+# After reunion the same controller drives a normal two-leg walk.
+func update_companion_walk(delta: float) -> void:
+	var target := move_target if directed_move else follow_target.global_position + follow_offset
+	var offset := target - global_position
+	offset.y = 0
+	var direction := offset.normalized() if offset.length() > 0.25 and not waiting_for_arm else Vector3.ZERO
+	var speed := 3.2 if directed_move else clampf(offset.length()*1.8,3.2,7.0)
+	velocity.x = move_toward(velocity.x,direction.x*speed,delta*18)
+	velocity.z = move_toward(velocity.z,direction.z*speed,delta*18)
+	if not is_on_floor(): velocity.y -= 18*delta
+	move_and_slide()
+	var moving := Vector2(velocity.x,velocity.z).length()
+	if moving > 0.1: visual.rotation.y = lerp_angle(visual.rotation.y,atan2(velocity.x,velocity.z),delta*9)
+	gait += moving*delta*TAU/2.3
+	animate_pose(delta,clampf(moving/3.2,0,1),is_on_floor())
+
 # One supporting leg compresses, pushes off, tucks in flight, then absorbs landing.
 func update_companion_hop(delta: float) -> void:
 	hop_clock += delta
-	var offset := follow_target.global_position + follow_offset - global_position
+	var offset := (move_target if directed_move else follow_target.global_position + follow_offset) - global_position
 	offset.y = 0
 	var moving := not waiting_for_arm and offset.length() > (0.75 if follow_offset.length() > 0.1 else 2.4)
 	if hop == Hop.REST and moving and is_on_floor():
@@ -141,6 +162,13 @@ func pose_bone(name: StringName, axis: Vector3, angle: float, spread_delta: floa
 
 func apply_joint_poses() -> void:
 	visual.rotation.x = 0
+	if npc and door_gesture > 0:
+		visual.rotation.x = 0.13 * door_gesture
+		right_arm.rotation.x = -1.25 * door_gesture
+		right_arm.rotation.z = 0.45 - 0.65 * door_gesture
+		elbows[1].rotation.x = -0.4 * door_gesture
+		left_arm.rotation.x = -0.25 * door_gesture
+		left_arm.rotation.z = -0.45 - 0.4 * door_gesture
 	if carrying and imported_skeleton != null:
 		left_arm.rotation.z = 0.6
 		right_arm.rotation.z = -0.6

@@ -35,6 +35,8 @@ var capturing := false
 var pause := false
 var restart_pending := false
 var passage_side := 1.0
+var first_door_pending := false
+var first_door_clock := 0.0
 var companion_parts: GardenCompanionParts
 var recovery_parts: Array[GardenRecoveryPart] = []
 var carried_part: GardenRecoveryPart
@@ -99,6 +101,7 @@ func _ready() -> void:
 	journey.setup(player, friend, companion_parts, world, camera, hud.curtain)
 	journey.dialogue_requested.connect(say_sequence)
 	journey.transition_lock.connect(set_transition_locked)
+	journey.reunion.glass_impact.connect(sound.glass_impact)
 	hud.letter_spoken.connect(sound.murmur)
 	player.jumped.connect(sound.jump)
 	hud.begin.connect(start)
@@ -257,9 +260,45 @@ func _input(event: InputEvent) -> void:
 		yaw -= event.relative.x * 0.004
 		pitch = clampf(pitch + event.relative.y * 0.003, 0.18, 1.15)
 
+func pickup_part(part: GardenRecoveryPart) -> void:
+	part.state = GardenRecoveryPart.State.PICKING
+	carried_part = part
+	player.action = "pickup"
+	player.action_phase = 0
+	action_time = 0
+	player.visual.rotation.y = atan2(part.position.x-player.position.x,part.position.z-player.position.z)
+
+func request_first_door() -> void:
+	if first_door_pending or world.door_open: return
+	first_door_pending = true
+	first_door_clock = 0
+	friend.waiting_for_arm = false
+	friend.directed_move = true
+	friend.move_target = Vector3(1.7,0.02,GardenWorld.EXIT_Z+1.2)
+	say("Khalini n7al lik lbab ;)",4)
+
+func update_first_door(delta: float) -> void:
+	if not first_door_pending: return
+	if friend.position.distance_to(friend.move_target)<0.9 and friend.is_on_floor():
+		first_door_clock += delta
+		friend.door_gesture = smoothstep(0,0.7,first_door_clock)
+		if first_door_clock > 0.8 and not world.door_open:
+			world.open_exit()
+			world.reveal_passage()
+			journey.prepare_gap()
+		if first_door_clock > 2:
+			friend.door_gesture = 0
+			friend.directed_move = false
+			first_door_pending = false
+
 func interact() -> void:
-	if transitioning or journey.chapter != GardenJourney.Chapter.FIRST: return
-	if not player.action.is_empty(): return
+	if transitioning or not player.action.is_empty(): return
+	if journey.chapter == GardenJourney.Chapter.DARK:
+		var head := journey.reunion.head
+		if carried_part == null and head != null and head.state == GardenRecoveryPart.State.AVAILABLE and player.position.distance_to(head.position)<2:
+			pickup_part(head)
+		return
+	if journey.chapter != GardenJourney.Chapter.FIRST: return
 	if carried_part != null:
 		if player.position.distance_to(friend.position) < 3:
 			charging = false
@@ -268,19 +307,12 @@ func interact() -> void:
 		return
 	for part in recovery_parts:
 		if part.state == GardenRecoveryPart.State.AVAILABLE and player.global_position.distance_to(part.global_position) < 2:
-			part.state = GardenRecoveryPart.State.PICKING
-			carried_part = part
+			pickup_part(part)
 			friend.waiting_for_arm = true
-			player.action = "pickup"
-			player.action_phase = 0
-			action_time = 0
-			player.visual.rotation.y = atan2(part.position.x - player.position.x, part.position.z - player.position.z)
 			say("Jibi liya lyed dyali o3tiha liya... 3afaak", 5)
 			return
 	if stage == Stage.PATH and player.position.distance_to(Vector3(0, 0, GardenWorld.EXIT_Z)) < 2.2:
-		world.open_exit()
-		world.reveal_passage()
-		journey.prepare_gap()
+		request_first_door()
 		return
 	if stage == Stage.SEED and not held and player.position.distance_to(ball.position) < 2.0:
 		if throw_in_flight: missed_throw()
@@ -335,9 +367,10 @@ func update_action(delta: float) -> void:
 	player.apply_joint_poses()
 	if player.action == "throw" and action_time >= THROW_RELEASE and not action_released:
 		if carried_part != null:
+			var arm := carried_part.kind == &"arm"
 			carried_part.throw_part(throw_velocity)
 			carried_part = null
-			say("Matb9ayech tla3bi biha -_-", 4)
+			if arm: say("Matb9ayech tla3bi biha -_-", 4)
 		else:
 			ball.global_position = player.fruit_position()
 			ball.freeze = false
@@ -418,6 +451,14 @@ func _physics_process(delta: float) -> void:
 			carried_part = null
 			player.carrying = false
 			player.action = ""
+	if journey.chapter == GardenJourney.Chapter.DARK and not transitioning and player.position.y < -5:
+		player.position = journey.reunion.safe_position + Vector3.UP*0.2
+		player.velocity = Vector3.ZERO
+		if carried_part != null:
+			carried_part.state = GardenRecoveryPart.State.AVAILABLE
+			carried_part = null
+			player.carrying = false
+			player.action = ""
 	if not player.action.is_empty() or transitioning: player.drive = Vector3.ZERO
 	update_action(delta)
 	if held:
@@ -441,10 +482,9 @@ func _physics_process(delta: float) -> void:
 			if stage == Stage.REVEAL: stage = Stage.GARDEN
 			sound.chime(783.99)
 	if journey.chapter == GardenJourney.Chapter.FIRST:
-		if stage == Stage.PATH and player.position.distance_to(Vector3(0, 0, GardenWorld.EXIT_Z)) < 3:
-			world.open_exit()
-			world.reveal_passage()
-			journey.prepare_gap()
+		if stage == Stage.PATH and player.position.distance_to(Vector3(0, 0, GardenWorld.EXIT_Z)) < 5:
+			request_first_door()
+		update_first_door(delta)
 		if stage == Stage.PATH and world.door_open and player.position.z < GardenJourney.ENTRY_Z and absf(player.position.x) < GardenWorld.PASSAGE_WIDTH / 2:
 			stage = Stage.COMPLETE
 			ball.hide()

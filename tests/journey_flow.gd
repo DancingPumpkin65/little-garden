@@ -80,7 +80,7 @@ func run() -> void:
 	assert(game.hud.dialogue.text == "Nice! Db khassna l9aw rjel dyali" and game.friend.celebration > 0, "restoration dialogue and celebration")
 	assert(not game.world.door_open, "door waits until player approaches")
 	game.player.position = Vector3(0, 0.04, GardenWorld.EXIT_Z + 1.5)
-	await frames(3)
+	await until(func(): return game.world.door_open)
 	assert(game.world.passage_revealed and game.world.door_open, "approach reveals narrow passage")
 	await frames(60)
 	await shot("passage")

@@ -1,5 +1,6 @@
 extends SceneTree
 var game: Node3D
+var gentleman_seen := false
 func _initialize() -> void: run.call_deferred()
 func frames(count: int) -> void:
 	for i in range(count): await physics_frame
@@ -23,6 +24,7 @@ func walk_to(z: float) -> void:
 	while game.player.position.z > z and count < 4000:
 		var before: Vector3 = game.player.position
 		await physics_frame
+		if game.first_door_pending and game.friend.door_gesture>0.5: gentleman_seen = true
 		assert(game.player.position.distance_to(before) < 0.2, "continuous walking without teleport")
 		assert(game.player.position.y > -0.1, "passage and platform have continuous floor")
 		assert(game.hud.curtain.color.a == 0 and not game.transitioning, "no fade or input lock through either door")
@@ -46,6 +48,7 @@ func run() -> void:
 	await frames(30)
 	await shot("first-door")
 	await walk_to(GardenWorld.EXIT_Z - 4)
+	assert(gentleman_seen,"first-stage companion also performs gentleman gesture")
 	assert(game.world.door_open and game.journey.prepared, "first door opens onto connected passage")
 	await walk_to(GardenJourney.ENTRY_Z + GardenWorld.PASSAGE_LENGTH / 2)
 	assert(not game.journey.arrival_gate.visible and not game.journey.near_platform.visible, "long passage looks into darkness before destination appears")

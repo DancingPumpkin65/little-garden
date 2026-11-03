@@ -90,3 +90,20 @@ func jump() -> void:
 	if jump_clip == null: return
 	effects.stream = jump_clip
 	effects.play()
+
+# A short brittle impact grows into a longer burst on the third hit.
+func glass_impact(broken: bool) -> void:
+	if DisplayServer.get_name() == "headless": return
+	var seconds := 0.65 if broken else 0.18
+	var stream := tone(1800,seconds)
+	var data := stream.data
+	var random := RandomNumberGenerator.new()
+	random.seed = 531 if broken else 213
+	for i in range(data.size()/2):
+		var t := i/22050.0
+		var envelope := exp(-t*(7 if broken else 23))
+		var wave := random.randf_range(-1,1)*0.55+sin(TAU*2300*t)*0.25+sin(TAU*3610*t)*0.2
+		data.encode_s16(i*2,int(wave*envelope*21000))
+	stream.data = data
+	effects.stream = stream
+	effects.play()

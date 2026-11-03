@@ -11,6 +11,11 @@ var start := Vector3.ZERO
 var girl: GardenCharacter
 var companion: GardenCompanionParts
 var velocity := Vector3.ZERO
+var hit_target: GardenGlass
+var hit_this_throw := false
+var ground_center := Vector3.ZERO
+var ground_radius := GardenWorld.MAP_RADIUS
+var ground_bounds := Rect2()
 var return_home := Vector3.ZERO
 var visual := MeshInstance3D.new()
 
@@ -39,6 +44,7 @@ func pick_up() -> void:
 
 func throw_part(impulse: Vector3) -> void:
 	state = State.THROWN
+	hit_this_throw = false
 	velocity = impulse
 	clock = 0
 	girl.carrying = false
@@ -64,12 +70,18 @@ func _physics_process(delta: float) -> void:
 		global_rotation.y = girl.visual.global_rotation.y
 	elif state == State.THROWN:
 		velocity.y -= delta * 9.8
+		var previous := global_position
 		global_position += velocity * delta
+		if hit_target != null and not hit_this_throw and hit_target.hit_head(previous,global_position):
+			hit_this_throw = true
+			var away := global_position-hit_target.global_position
+			away.y = 0
+			velocity = away.normalized()*2.5+Vector3.UP*2.5
 		visual.rotation.x += delta * 5
 		if global_position.y < -5:
 			home = return_home
 			state = State.AVAILABLE
-		elif global_position.y < 0.55 and Vector2(global_position.x, global_position.z).length() < GardenWorld.MAP_RADIUS - 0.3:
+		elif global_position.y < 0.55 and over_ground():
 			home = Vector3(global_position.x, 0.55, global_position.z)
 			visual.rotation.x = 0
 			state = State.AVAILABLE
@@ -82,3 +94,8 @@ func _physics_process(delta: float) -> void:
 			state = State.RESTORED
 			hide()
 			returned.emit(kind)
+
+func over_ground() -> bool:
+	var point := Vector2(global_position.x,global_position.z)
+	if ground_bounds.has_area(): return ground_bounds.has_point(point)
+	return point.distance_to(Vector2(ground_center.x,ground_center.z)) < ground_radius-0.3

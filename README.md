@@ -12,11 +12,15 @@ The first map contains only the target and door. The supplied Latin-letter Darij
 
 The passage leads to two 70-unit-wide white rectangular platforms separated by an unreachable 20-unit gap. The near platform is 48 units deep and the far platform is 40 units deep. The floor shades to gray with distance, matching the supplied reference views. The gap dialogue starts near the edge, after the player crosses the large empty approach. The loose left leg hops on the far side. After the supplied two lines, the companion runs, jumps and falls without respawning. The far platform and leg fade smoothly to black over 1.4 seconds. Falling from the player's platform is the unannounced exit, followed by a full black transition.
 
-The girl then drops onto a vast white floor that fades to darkness before any edge can be seen. The companion and left leg are ahead of her. Work stops at this arrival; there is no further leg interaction or quest yet. The supplied wording is preserved, including "yedi" while looking at the leg.
+The girl then drops onto a broad white floor fading into darkness. He greets her with the supplied Darija lines, the leg floats back into place, and he switches to a normal two-leg walk. He leads while waiting if she falls behind. Seven small flowers emerge along the first approach and two more along the next passage. He reaches for the handle, bows slightly and opens the paneled door with "Khalini n7al lik lbab ;)". The same gesture and line now open the first-stage door too.
+
+The next map contains a pink cake under a transparent rounded glass case on a stepped white plinth. His head is beside it. E picks up the head with the reach animation; hold and release left mouse to use the existing overhand throw. The first two head impacts add cracks and shake the glass. The third emits animated shards and a shattering sound, then clears the barrier. Each throw counts once. Missed heads return if they fall outside the map. This is the stopping point for the current scenario.
+
+All supplied Latin-letter Darija wording is preserved, including "yedi" in the earlier leg dialogue.
 
 ## Controls
 
-WASD/arrows move, Shift runs, Space jumps. E picks up the fruit or arm, returns the arm near the companion, or talks. Hold left mouse to aim and charge the fruit or carried arm, then release to throw. Mouse movement orbits and tilts the camera. R recovers the fruit; Escape pauses and frees the cursor. Start again clears the paused tree before reloading to the title. Falls recover in the first map. In the gap chapter, falling intentionally progresses the story.
+WASD/arrows move, Shift runs, Space jumps. E picks up the fruit or arm, returns the arm near the companion, or talks. In the cake map, E picks up the head. Hold left mouse to aim and charge the fruit, carried arm, or head, then release to throw. Mouse movement orbits and tilts the camera. R recovers the fruit; Escape pauses and frees the cursor. Start again clears the paused tree before reloading to the title. Falls recover in the first map. In the gap chapter, falling intentionally progresses the story.
 
 ## Structure
 
@@ -26,6 +30,9 @@ WASD/arrows move, Shift runs, Space jumps. E picks up the fruit or arm, returns 
 - `scripts/recovery_part.gd`: emergence, pickup, carrying and animated restoration.
 - `scripts/garden.gd`: white first map, target, closing door and continuous passage.
 - `scripts/journey.gd`: connected quest platforms, scripted failed jump and dark arrival.
+- `scripts/reunion.gd`: leg reunion, walking leader, flowers, gentleman door and cake map.
+- `scripts/story_door.gd`: paneled door mesh, hinge and collision.
+- `scripts/glass_case.gd`: swept head impacts, three-hit cracks, glass barrier and animated shards.
 - `scripts/foot_dust.gd`: pooled gray foot puffs.
 - `scripts/interface.gd`: speech bubbles, typewriter, title and pause menu.
 - `scripts/sound.gd`: generated murmurs, jump sound, ambience and chimes.
@@ -38,10 +45,11 @@ Blender produces the body GLBs; Godot keeps the controller and animation logic. 
 
 Run these with Godot's `--headless --fixed-fps 60 --path .` flags:
 
+- `--quit-after 14000 --script tests/reunion_cake.gd`: exact reunion dialogue, leg restoration, two-leg leader, sparse flowers, door gesture, head pickup/throws, three real impacts, shatter cleanup and missed-head recovery. Append `-- --capture-reunion` with the native renderer to capture the sequence.
 - `--quit-after 11000 --script tests/journey_flow.gd`: complete connected sequence, exact dialogue, hand throw, dust, formation, seamless passage traversal, door closure, the fall fade, non-respawning companion and final arrival. Append `-- --procedural-character` for the legacy visuals.
 - `--quit-after 7500 --script tests/doorway_flow.gd`: boundary door, continuous dark passage, second door, arrival closure, hidden old world and disabled old collisions. Append `-- --capture-doorway` with the native renderer for reference-view captures.
 - `--quit-after 1000 --script tests/handoff_restart.gd`: stationary handoff, restored arm in the hop, and movement after restarting from pause.
-- `--quit-after 1100 --script tests/scenario_one.gd`: real throw, whole-arm reward, pickup, pause/fall recovery, restoration and door completion. Append `-- --procedural-character` for the fallback.
+- `--quit-after 1500 --script tests/scenario_one.gd`: real throw, whole-arm reward, pickup, pause/fall recovery, restoration and door completion. Append `-- --procedural-character` for the fallback.
 - `--quit-after 1100 --script tests/hop_and_misses.gd`: hop phases, larger empty map, full-arm geometry and one rotating joke per missed physics throw.
 - `--quit-after 500 -- --self-test`: controller, timed throw, target trigger, reveal and fall recovery.
 - `--quit-after 180 --script tests/fruit_attachment.gd`: hand attachment, camera orbit and throw timing.

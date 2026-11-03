@@ -37,6 +37,7 @@ var crossing := false
 var clock := 0.0
 var dark_material: ShaderMaterial
 var quest_material: ShaderMaterial
+var reunion: GardenReunion
 
 func setup(girl: GardenCharacter, guy: GardenCharacter, body_parts: GardenCompanionParts, first_map: GardenWorld, view: Camera3D, overlay: ColorRect) -> void:
 	player = girl
@@ -46,6 +47,10 @@ func setup(girl: GardenCharacter, guy: GardenCharacter, body_parts: GardenCompan
 	camera = view
 	curtain = overlay
 	add_child(scene_root)
+	reunion = GardenReunion.new()
+	add_child(reunion)
+	reunion.setup(player,companion,parts,scene_root)
+	reunion.dialogue_requested.connect(func(lines: Array[String]): dialogue_requested.emit(lines))
 
 func platform(at: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
 	Shapes.collider(scene_root, at, size)
@@ -138,6 +143,7 @@ func start_gap_dialogue() -> void:
 	dialogue_requested.emit(lines)
 
 func dialogue_finished() -> void:
+	if chapter == Chapter.DARK: reunion.dialogue_finished()
 	if chapter == Chapter.GAP and beat == Beat.INTRO and dialogue_started:
 		companion.follow_target = null
 		companion.set_physics_process(false)
@@ -156,7 +162,7 @@ func enter_dark() -> void:
 	dark_material = ShaderMaterial.new()
 	dark_material.shader = Shader.new()
 	dark_material.shader.code = "shader_type spatial; uniform vec3 light_center=vec3(0.0); varying vec3 world; void vertex(){world=(MODEL_MATRIX*vec4(VERTEX,1.0)).xyz;} void fragment(){float distance_to_light=length(world.xz-light_center.xz); ALBEDO=vec3(1.0-smoothstep(13.0,42.0,distance_to_light));ROUGHNESS=1.0;SPECULAR=0.0;}"
-	platform(Vector3(0, -0.48, 0), Vector3(10000, 1, 10000), dark_material)
+	platform(Vector3(0, -0.48, 4), Vector3(120, 1, 112), dark_material)
 	player.position = Vector3(0, 12, 3)
 	player.velocity = Vector3(0, -2, 0)
 	companion.position = Vector3(2.3, 0.03, -0.6)
@@ -172,6 +178,7 @@ func enter_dark() -> void:
 	leg.mesh = parts.loose_mesh(&"leg")
 	scene_root.add_child(leg)
 	chapter = Chapter.DARK
+	reunion.activate(leg)
 	clock = 0
 	camera.position = player.position + Vector3(0, 8.5, 12.5)
 	camera.look_at(player.position + Vector3(0, 0.7, -2))
@@ -213,4 +220,3 @@ func _physics_process(delta: float) -> void:
 		if player.position.y < -6 and not crossing: enter_dark()
 	elif chapter == Chapter.DARK:
 		dark_material.set_shader_parameter("light_center", player.global_position)
-		leg.position = Vector3(-1.7, 0.66 + absf(sin(clock * 3)) * 0.22, -3.2)

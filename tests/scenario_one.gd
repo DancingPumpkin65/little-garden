@@ -79,7 +79,10 @@ func run() -> void:
 	assert(game.companion_parts.missing[&"leg"], "left leg remains missing for next scenario")
 	game.player.position = Vector3(0, 0.03, GardenWorld.EXIT_Z + 0.8)
 	game.interact()
-	assert(game.world.door_open, "door can open after restoration")
+	for i in range(400):
+		if game.world.door_open: break
+		await physics_frame
+	assert(game.world.door_open, "companion opens door after restoration")
 	await frames(35)
 	await capture(game, "door-open")
 	game.player.position = Vector3(0, 0.03, GardenJourney.ENTRY_Z - 1)
