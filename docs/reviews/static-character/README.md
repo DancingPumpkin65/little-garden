@@ -21,4 +21,3 @@ Inspected Blender front, side and back views and native Godot static views. Iden
 This is a closer static iteration, not a pixel-perfect reproduction or a 10/10 council result. The retained hood silhouette and head/body balance still differ from the source character. The original video page was unavailable during this pass; no new video captures were made. The full three-column comparison with the supplied reference is local at `artifacts/reference-refinement/reference-three-views.png`.
 
 Council review was requested but could not run. The skill requires three model providers and this session exposes only OpenAI models. No substitute scores were assigned.
-
