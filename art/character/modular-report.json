@@ -1,0 +1,264 @@
+[
+  {
+    "variant": "girl",
+    "body_objects": [
+      "HEAD",
+      "TORSO",
+      "ARM_LEFT",
+      "ARM_RIGHT",
+      "HAND_LEFT",
+      "HAND_RIGHT",
+      "LEG_LEFT",
+      "LEG_RIGHT",
+      "FOOT_LEFT",
+      "FOOT_RIGHT"
+    ],
+    "independent_mesh_data": true,
+    "independent_transform_check": true,
+    "bones": 15,
+    "triangles": 14426,
+    "modules": [
+      {
+        "name": "HEAD",
+        "origin": [
+          0.0,
+          -0.015,
+          1.97
+        ],
+        "vertices": 2810,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "TORSO",
+        "origin": [
+          0.0,
+          0.0,
+          1.0592
+        ],
+        "vertices": 366,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "ARM_LEFT",
+        "origin": [
+          -0.285,
+          0.0,
+          1.639
+        ],
+        "vertices": 314,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "ARM_RIGHT",
+        "origin": [
+          0.285,
+          0.0,
+          1.639
+        ],
+        "vertices": 314,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "HAND_LEFT",
+        "origin": [
+          -0.73,
+          -0.018,
+          0.9985
+        ],
+        "vertices": 422,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "HAND_RIGHT",
+        "origin": [
+          0.73,
+          -0.018,
+          0.9985
+        ],
+        "vertices": 422,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "LEG_LEFT",
+        "origin": [
+          -0.18,
+          0.0,
+          1.12
+        ],
+        "vertices": 366,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "LEG_RIGHT",
+        "origin": [
+          0.18,
+          0.0,
+          1.12
+        ],
+        "vertices": 366,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "FOOT_LEFT",
+        "origin": [
+          -0.2,
+          -0.019,
+          0.162
+        ],
+        "vertices": 422,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "FOOT_RIGHT",
+        "origin": [
+          0.2,
+          -0.019,
+          0.162
+        ],
+        "vertices": 422,
+        "parent": "CharacterRig"
+      }
+    ],
+    "garment_objects": [
+      "SWEATER_TORSO",
+      "SWEATER_SLEEVE_LEFT",
+      "SWEATER_SLEEVE_RIGHT",
+      "PANTS_LEFT",
+      "PANTS_RIGHT",
+      "SHOES_LEFT",
+      "SHOES_RIGHT"
+    ],
+    "garment_triangles": 6192
+  },
+  {
+    "variant": "guy",
+    "body_objects": [
+      "HEAD",
+      "TORSO",
+      "ARM_LEFT",
+      "ARM_RIGHT",
+      "HAND_LEFT",
+      "HAND_RIGHT",
+      "LEG_LEFT",
+      "LEG_RIGHT",
+      "FOOT_LEFT",
+      "FOOT_RIGHT"
+    ],
+    "independent_mesh_data": true,
+    "independent_transform_check": true,
+    "bones": 15,
+    "triangles": 8766,
+    "modules": [
+      {
+        "name": "HEAD",
+        "origin": [
+          0.0,
+          -0.015,
+          1.97
+        ],
+        "vertices": 470,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "TORSO",
+        "origin": [
+          0.0,
+          0.0,
+          1.0592
+        ],
+        "vertices": 366,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "ARM_LEFT",
+        "origin": [
+          -0.285,
+          0.0,
+          1.639
+        ],
+        "vertices": 314,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "ARM_RIGHT",
+        "origin": [
+          0.285,
+          0.0,
+          1.639
+        ],
+        "vertices": 314,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "HAND_LEFT",
+        "origin": [
+          -0.73,
+          -0.018,
+          0.9985
+        ],
+        "vertices": 422,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "HAND_RIGHT",
+        "origin": [
+          0.73,
+          -0.018,
+          0.9985
+        ],
+        "vertices": 422,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "LEG_LEFT",
+        "origin": [
+          -0.18,
+          0.0,
+          1.12
+        ],
+        "vertices": 366,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "LEG_RIGHT",
+        "origin": [
+          0.18,
+          0.0,
+          1.12
+        ],
+        "vertices": 366,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "FOOT_LEFT",
+        "origin": [
+          -0.2,
+          -0.019,
+          0.162
+        ],
+        "vertices": 422,
+        "parent": "CharacterRig"
+      },
+      {
+        "name": "FOOT_RIGHT",
+        "origin": [
+          0.2,
+          -0.019,
+          0.162
+        ],
+        "vertices": 422,
+        "parent": "CharacterRig"
+      }
+    ],
+    "garment_objects": [
+      "SWEATER_TORSO",
+      "SWEATER_SLEEVE_LEFT",
+      "SWEATER_SLEEVE_RIGHT",
+      "PANTS_LEFT",
+      "PANTS_RIGHT",
+      "SHOES_LEFT",
+      "SHOES_RIGHT"
+    ],
+    "garment_triangles": 6192
+  }
+]

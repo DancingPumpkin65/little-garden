@@ -14,8 +14,6 @@ var directed_move := false
 var move_target := Vector3.ZERO
 var door_gesture := 0.0
 var birthday_outfit := false
-var outfit_blend := 0.0
-var outfit_materials: Array[ShaderMaterial] = []
 var follow_target: Node3D
 var imported_skeleton: Skeleton3D
 var action := ""
@@ -77,9 +75,6 @@ func _ready() -> void:
 	if not npc: add_head_flower()
 
 func _physics_process(delta: float) -> void:
-	if birthday_outfit and outfit_blend<1:
-		outfit_blend = minf(1,outfit_blend+delta*1.2)
-		for material in outfit_materials: material.set_shader_parameter("reveal",smoothstep(0,1,outfit_blend))
 	if npc and (follow_target != null or directed_move):
 		if two_legs: update_companion_walk(delta)
 		else: update_companion_hop(delta)
@@ -93,13 +88,14 @@ func update_companion_walk(delta: float) -> void:
 	var offset := target - global_position
 	offset.y = 0
 	var direction := offset.normalized() if offset.length() > 0.25 and not waiting_for_arm else Vector3.ZERO
-	var speed := 3.2 if directed_move else clampf(offset.length()*1.8,3.2,7.0)
+	var speed := 4.8 if directed_move else clampf(offset.length()*1.8,3.2,7.0)
+	speed = minf(speed,offset.length()*4.0)
 	velocity.x = move_toward(velocity.x,direction.x*speed,delta*18)
 	velocity.z = move_toward(velocity.z,direction.z*speed,delta*18)
 	if not is_on_floor(): velocity.y -= 18*delta
 	move_and_slide()
 	var moving := Vector2(velocity.x,velocity.z).length()
-	if moving > 0.1: visual.rotation.y = lerp_angle(visual.rotation.y,atan2(velocity.x,velocity.z),delta*9)
+	if moving > 0.1: visual.rotation.y = lerp_angle(visual.rotation.y,atan2(velocity.x,velocity.z)-global_rotation.y,delta*9)
 	gait += moving*delta*TAU/2.3
 	animate_pose(delta,clampf(moving/3.2,0,1),is_on_floor())
 
@@ -127,7 +123,7 @@ func update_companion_hop(delta: float) -> void:
 	if hop == Hop.LAND and hop_clock >= 0.13:
 		hop = Hop.REST
 		hop_clock = 0
-	if moving: visual.rotation.y = lerp_angle(visual.rotation.y, atan2(offset.x, offset.z), delta * 7)
+	if moving: visual.rotation.y = lerp_angle(visual.rotation.y, atan2(offset.x, offset.z)-global_rotation.y, delta * 7)
 	animate_pose(delta, 0.0, true)
 	var bend := 0.0
 	if hop == Hop.CROUCH: bend = smoothstep(0, 0.16, hop_clock)
@@ -289,60 +285,56 @@ func flower_lobe(parent: Node3D, at: Vector3, size: Vector3, material: Material)
 	mesh.height = 1
 	return Shapes.mesh(parent, mesh, at, material, size)
 
-# Rest-pose bone weights mark clothing without recoloring the face, hands or hijab.
+# Garments are separate Blender meshes sharing the existing skeleton and pose controller.
 func put_on_birthday_outfit() -> void:
 	if birthday_outfit: return
 	birthday_outfit = true
-	if imported_skeleton == null:
-		var sweater := Shapes.material(Color("4272ca") if npc else Color("5ed6e3"))
-		var pants := Shapes.material(Color("20242c") if npc else Color("8be4eb"))
-		for child in visual.get_children():
-			if child is MeshInstance3D: child.material_override = sweater
-		for limb in [left_arm,right_arm,left_leg,right_leg]:
-			for child in limb.get_children():
-				if child is MeshInstance3D: child.material_override = pants if limb in [left_leg,right_leg] else sweater
-		return
-	for node in model_root.find_children("*","MeshInstance3D",true,false):
-		var instance := node as MeshInstance3D
-		if instance.skin == null: continue
-		var source := instance.mesh
-		var colored := ArrayMesh.new()
-		for surface in range(source.get_surface_count()):
-			var arrays := source.surface_get_arrays(surface)
+	if imported_skeleton == null: return
+	var packed := load("res://assets/characters/"+("guy" if npc else "girl")+"_wardrobe.glb") as PackedScene
+	var source := packed.instantiate()
+	add_child(source)
+	source.hide()
+	var wardrobe := Node3D.new()
+	wardrobe.name = "Birthday clothing"
+	model_root.add_child(wardrobe)
+	for child: MeshInstance3D in source.find_children("*","MeshInstance3D",true,false):
+		if child.skin==null: continue
+		var garment := MeshInstance3D.new()
+		garment.name = child.name
+		garment.mesh = child.mesh
+		garment.skin = child.skin
+		wardrobe.add_child(garment)
+		garment.transform = source.global_transform.affine_inverse()*child.global_transform
+		garment.skeleton = garment.get_path_to(imported_skeleton)
+	source.free()
+	# Remove only covered body triangles. Face, mittens, shoes and identity accessories stay.
+	for child: MeshInstance3D in model_root.find_children("*","MeshInstance3D",true,false):
+		if child.skin==null or wardrobe.is_ancestor_of(child): continue
+		if child.name in [&"TORSO",&"ARM_LEFT",&"ARM_RIGHT",&"LEG_LEFT",&"LEG_RIGHT",&"FOOT_LEFT",&"FOOT_RIGHT"]:
+			child.hide()
+			continue
+		var covered := ArrayMesh.new()
+		for surface in range(child.mesh.get_surface_count()):
+			var arrays := child.mesh.surface_get_arrays(surface)
 			var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 			var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
 			var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
+			var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+			var keep := PackedInt32Array()
 			var influences := weights.size()/vertices.size()
-			var colors := PackedColorArray()
-			for vertex in range(vertices.size()):
-				var pants := 0.0
-				var sweater := 0.0
-				for i in range(influences):
-					var bind := bones[vertex*influences+i]
-					var name := instance.skin.get_bind_name(bind)
-					if name.is_empty(): name = imported_skeleton.get_bone_name(instance.skin.get_bind_bone(bind))
-					var weight := weights[vertex*influences+i]
-					if name in [&"thigh_L",&"thigh_R",&"calf_L",&"calf_R"]: pants += weight
-					elif name in [&"arm_L",&"arm_R",&"forearm_L",&"forearm_R",&"spine",&"body",&"pelvis",&"root"]: sweater += weight
-				colors.append(Color(pants,sweater,0,1))
-			arrays[Mesh.ARRAY_COLOR] = colors
-			colored.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
-			var material := ShaderMaterial.new()
-			material.shader = Shader.new()
-			material.shader.code = "shader_type spatial; uniform vec4 base_color:source_color=vec4(1.0); uniform vec4 sweater:source_color; uniform vec4 pants:source_color; uniform float reveal=0.0; void fragment(){vec3 cloth=mix(base_color.rgb,pants.rgb,COLOR.r);cloth=mix(cloth,sweater.rgb,COLOR.g);ALBEDO=mix(base_color.rgb,cloth,reveal);ROUGHNESS=1.0;SPECULAR=0.0;}"
-			var original := source.surface_get_material(surface) as BaseMaterial3D
-			material.set_shader_parameter("base_color",original.albedo_color if original!=null else Color.WHITE)
-			material.set_shader_parameter("sweater",Color("4272ca") if npc else Color("5ed6e3"))
-			material.set_shader_parameter("pants",Color("20242c") if npc else Color("8be4eb"))
-			colored.surface_set_material(surface,material)
-			outfit_materials.append(material)
-		instance.mesh = colored
-	if not npc:
-		for bone: StringName in [&"foot_L",&"foot_R"]:
-			var cuff := BoneAttachment3D.new()
-			cuff.bone_name = bone
-			imported_skeleton.add_child(cuff)
-			# A small scalloped fleece edge follows the ankle bone.
-			for i in range(7):
-				var a := i*TAU/7
-				GardenBloom.lobe(cuff,Vector3(cos(a)*0.14,0.03,sin(a)*0.14),Vector3.ONE*0.11,Color("8be4eb"))
+			for triangle in range(0,indices.size(),3):
+				var dressed := 0.0
+				for corner in range(3):
+					var vertex := indices[triangle+corner]
+					for influence in range(influences):
+						var bind := bones[vertex*influences+influence]
+						var bone := child.skin.get_bind_name(bind)
+						if bone in [&"body",&"root",&"arm_L",&"arm_R",&"forearm_L",&"forearm_R",&"thigh_L",&"thigh_R",&"calf_L",&"calf_R"]:
+							dressed += weights[vertex*influences+influence]
+				if dressed<1.5:
+					keep.append_array(indices.slice(triangle,triangle+3))
+			if keep.is_empty(): continue
+			arrays[Mesh.ARRAY_INDEX] = keep
+			covered.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
+			covered.surface_set_material(covered.get_surface_count()-1,child.mesh.surface_get_material(surface))
+		child.mesh = covered

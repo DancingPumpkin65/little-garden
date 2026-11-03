@@ -18,14 +18,18 @@ func shot(name: String, focus: Vector3) -> void:
 		states.append(node.is_physics_processing())
 		node.set_physics_process(false)
 	game.camera.position = focus+Vector3(3,5.8,17)
-	if name=="birthday-outfits":
+	if name.begins_with("birthday-outfits"):
 		game.camera.position = focus+Vector3(3,2.9,7)
 	if name=="flower-sprout" or name=="flower-open":
 		game.camera.position = focus+Vector3(0.8,1.0,2.1)
+	if name=="birthday-plum":
+		game.camera.position = focus+Vector3(23,13,26)
+	if name=="birthday-flowers":
+		game.camera.position = focus+Vector3(1,2.5,5)
 	if name=="birthday-garden":
 		game.camera.position = focus+Vector3(28,22,34)
 
-	game.camera.look_at(focus+Vector3.UP*(0.45 if name.begins_with("flower-") and name!="flower-passage" else 1.2 if name=="birthday-outfits" else 1.8))
+	game.camera.look_at(focus+Vector3.UP*(0.45 if name.begins_with("flower-") and name!="flower-passage" else 1.2 if name.begins_with("birthday-outfits") else 1.8))
 	game.update_hud()
 	await RenderingServer.frame_post_draw
 	root.get_texture().get_image().save_png("res://artifacts/reunion-"+name+".png")
@@ -129,7 +133,7 @@ func run() -> void:
 	await until(func(): return story.birthday.flowers[0].progress>0.25)
 	var flower: GardenBloom = story.birthday.flowers[0]
 	await shot("flower-sprout",flower.global_position)
-	var stem_height := flower.stem.get_aabb().size.y
+	var stem_height := flower.stem.get_aabb().size.y*flower.stem.scale.y
 	assert(flower.scale == Vector3.ONE,"sprouting flower does not expand its root scale")
 	game.set_pause(true)
 	var paused_age: float = story.birthday.age
@@ -137,7 +141,7 @@ func run() -> void:
 	assert(story.birthday.age==paused_age,"pause freezes garden transformation")
 	game.set_pause(false)
 	await frames(90)
-	assert(flower.stem.get_aabb().size.y>stem_height and flower.scale==Vector3.ONE,"stem grows before petals finish unfolding")
+	assert(flower.stem.get_aabb().size.y*flower.stem.scale.y>stem_height and flower.scale==Vector3.ONE,"stem grows before petals finish unfolding")
 	await until(func(): return game.hud.dialogue.text==story.BIRTHDAY_LINES[3],2400)
 	await frames(100)
 	assert(game.hud.bubble.size.y>80,"long birthday line expands its panel and attached shadow")
@@ -145,33 +149,41 @@ func run() -> void:
 	await until(func(): return game.hud.dialogue.text==story.BIRTHDAY_LINES[-1],2400)
 	for line in story.BIRTHDAY_LINES.slice(0,4): assert(line in seen,"birthday greeting sequence is complete")
 	assert(game.player.birthday_outfit and game.friend.birthday_outfit,"both outfits switch after third hit")
-	if game.player.imported_skeleton != null:
-		assert(game.player.outfit_materials.size()>0 and game.friend.outfit_materials.size()>0,"rigged meshes receive clothing materials")
-		assert(game.player.outfit_materials[0].get_shader_parameter("sweater")==Color("5ed6e3"),"girl cyan sweater")
-		assert(game.friend.outfit_materials[0].get_shader_parameter("pants")==Color("20242c"),"guy black pants")
-		var instance := game.player.model_root.find_children("*","MeshInstance3D",true,false)[0] as MeshInstance3D
-		var torso := 0
-		for surface in range(instance.mesh.get_surface_count()):
-			var arrays := instance.mesh.surface_get_arrays(surface)
-			var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-			var colors: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
-			var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
-			var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
-			var influences := weights.size()/vertices.size()
-			for vertex in range(vertices.size()):
-				for i in range(influences):
-					var bind := bones[vertex*influences+i]
-					if instance.skin.get_bind_name(bind)==&"body" and weights[vertex*influences+i]>0.95:
-						torso += 1
-						assert(colors[vertex].g>0.9,"sweater covers torso as well as sleeves")
-		assert(torso>20,"torso clothing samples exist")
-	assert(story.birthday.hero.progress==1 and story.birthday.trees.size()==18 and story.birthday.flowers.size()==96,"large blossom tree and varied garden finish growing")
+	for actor in [game.player,game.friend]:
+		var wardrobe: Node3D = actor.model_root.get_node("Birthday clothing")
+		assert(wardrobe.get_child_count()>=6,"outfits contain separate sweater, sleeves, hems and trousers")
+		for garment: MeshInstance3D in wardrobe.get_children():
+			assert(garment.skin!=null and garment.get_node(garment.skeleton)==actor.imported_skeleton,"garments follow the existing animated skeleton")
+	assert(story.birthday.hero.progress==1 and story.birthday.trees.size()==18 and story.birthday.flowers.size()==160,"large blossom tree and varied garden finish growing")
+	assert(story.birthday.hero.height>=18 and story.birthday.hero.crowns.size()==1,"large plum tree uses one cohesive rounded crown")
+	assert(game.environment.background_mode==Environment.BG_SKY,"birthday garden replaces darkness with blue cloud sky")
+	var flower_kinds := {}
+	for bloom: GardenBloom in story.birthday.flowers: flower_kinds[bloom.kind] = true
+	assert(flower_kinds.size()==6,"garden contains six distinct flower constructions")
 	assert(not story.cake_visual.visible and not story.plinth_visual.visible,"cake morphs away into blossom tree")
 	await frames(140)
 	await shot("flower-open",flower.global_position)
 	await shot("birthday-outfits",(game.player.position+game.friend.position)*0.5)
 	if DisplayServer.get_name()!="headless": print("GARDEN_RENDER_FPS ",Engine.get_frames_per_second())
 	await shot("birthday-garden",Vector3(0,0,GardenReunion.CAKE_Z))
+	await shot("birthday-plum",Vector3(0,7,GardenReunion.CAKE_Z))
+	await shot("birthday-flowers",story.birthday.flowers[30].global_position)
+	game.set_physics_process(false)
+	game.player.drive = Vector3.RIGHT
+	var trail_before: int = story.birthday.trail.size()
+	await frames(160)
+	game.player.drive = Vector3.ZERO
+	assert(story.birthday.trail.size()>trail_before+3,"walking leaves a growing plant trail")
+	await frames(150)
+	assert(story.birthday.trail[-1].progress>0.9,"trail flowers grow from stems rather than scaling whole plants")
+	await shot("birthday-trail",game.player.position-Vector3.RIGHT*2)
+	game.player.visual.rotation.y = 0
+	game.friend.visual.rotation.y = -game.friend.rotation.y
+	await shot("birthday-outfits-front",(game.player.position+game.friend.position)*0.5)
+	game.player.animate_pose(1,1,true)
+	await shot("birthday-outfits-motion",game.player.position)
+	game.set_physics_process(true)
+
 	assert(story.glass.shards.is_empty(),"shards clean up after animation")
 	assert(game.companion_parts.missing[&"head"],"throwing head does not incorrectly restore it")
 	story.head.state = GardenRecoveryPart.State.THROWN

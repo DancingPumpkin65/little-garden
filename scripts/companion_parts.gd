@@ -1,13 +1,15 @@
 class_name GardenCompanionParts
 extends RefCounted
 
-const CENTERS := {&"head": Vector3(0, 2.145, 0.015), &"arm": Vector3(0.52, 1.43, 0.018), &"leg": Vector3(-0.20, 0.64, 0.05)}
+const CENTERS := {&"head": Vector3(0, 1.97, 0.015), &"arm": Vector3(0.54, 1.33, 0.025), &"leg": Vector3(-0.20, 0.59, 0.05)}
 var missing := {&"head": true, &"arm": true, &"leg": true}
 var instance: MeshInstance3D
 var original: Mesh
 var groups: Array[Array] = []
 var arm_cap: MeshInstance3D
 var actor: GardenCharacter
+var modules: Array[MeshInstance3D] = []
+var module_parts: Dictionary[StringName,StringName] = {}
 var legacy_nodes: Dictionary[StringName, Node3D] = {}
 
 func _init(character: GardenCharacter) -> void:
@@ -18,6 +20,10 @@ func _init(character: GardenCharacter) -> void:
 		legacy_nodes[&"leg"] = actor.left_leg
 		refresh()
 		return
+	for node: MeshInstance3D in actor.model_root.find_children("*","MeshInstance3D",true,false):
+		if node.name==&"TORSO":
+			setup_modules()
+			return
 	instance = actor.model_root.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D
 	original = instance.mesh
 	for surface in range(original.get_surface_count()):
@@ -55,6 +61,9 @@ func part_weight(arrays: Array, vertex: int, part: StringName) -> float:
 	return total
 
 func refresh() -> void:
+	if not modules.is_empty():
+		for node in modules: node.visible = not missing.get(module_parts[node.name],false)
+		return
 	if arm_cap != null: arm_cap.visible = missing[&"arm"]
 	if original == null:
 		for part in legacy_nodes: legacy_nodes[part].visible = not missing[part]
@@ -79,6 +88,7 @@ func restore(part: StringName) -> void:
 
 # Recoverable meshes use the exact imported head/arm, with their original materials.
 func loose_mesh(part: StringName) -> ArrayMesh:
+	if not modules.is_empty(): return loose_module(part)
 	var mesh := ArrayMesh.new()
 	if original == null:
 		var builder := SurfaceTool.new()
@@ -130,3 +140,29 @@ func anchor(part: StringName) -> Vector3:
 	var pose := actor.imported_skeleton.get_bone_global_pose(index)
 	var rest := actor.imported_skeleton.get_bone_global_rest(index)
 	return actor.imported_skeleton.global_transform * (pose * (rest.affine_inverse() * CENTERS[part]))
+
+# Each imported body part stays separately controllable; no triangle surgery is needed.
+func setup_modules() -> void:
+	for node: MeshInstance3D in actor.model_root.find_children("*","MeshInstance3D",true,false):
+		modules.append(node)
+		var label := String(node.name).to_lower()
+		var part: StringName = &"body"
+		if label in ["arm_right","hand_right"]: part = &"arm"
+		elif label in ["leg_left","foot_left"]: part = &"leg"
+		elif label=="head" or label.contains("hijab") or label.contains("hair") or label.begins_with("glasses") or label.begins_with("eye") or label.begins_with("mustache") or label.begins_with("goatee"): part = &"head"
+		module_parts[node.name] = part
+	refresh()
+
+func loose_module(part: StringName) -> ArrayMesh:
+	var mesh := ArrayMesh.new()
+	for node in modules:
+		if module_parts[node.name]!=part: continue
+		var rest_transform := actor.model_root.global_transform.affine_inverse()*node.global_transform
+		rest_transform.origin -= CENTERS[part]
+		for surface in range(node.mesh.get_surface_count()):
+			var builder := SurfaceTool.new()
+			builder.begin(Mesh.PRIMITIVE_TRIANGLES)
+			builder.append_from(node.mesh,surface,rest_transform)
+			builder.set_material(node.mesh.surface_get_material(surface))
+			builder.commit(mesh)
+	return mesh

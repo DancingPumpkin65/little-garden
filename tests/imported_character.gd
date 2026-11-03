@@ -18,12 +18,16 @@ func verify(companion: bool) -> void:
 	var skeleton := character.imported_skeleton
 	assert(skeleton.get_bone_count() == 15, "export retains the full body/head/limb armature")
 	var meshes := character.model_root.find_children("*", "MeshInstance3D", true, false).filter(func(node: Node): return (node as MeshInstance3D).skin != null)
-	assert(meshes.size() == 1, "runtime combines source objects into one skinned mesh")
+	var named := {}
+	for node: MeshInstance3D in meshes: named[String(node.name)] = node
+	for part in ["HEAD","TORSO","ARM_LEFT","ARM_RIGHT","HAND_LEFT","HAND_RIGHT","LEG_LEFT","LEG_RIGHT","FOOT_LEFT","FOOT_RIGHT"]:
+		assert(named.has(part),"each required body module must survive GLB import: "+part)
+	assert(meshes.size()>=10,"body modules remain independent skinned mesh instances")
 	var triangles := 0
 	for node in meshes:
 		var instance := node as MeshInstance3D
 		assert(instance.skin != null, "runtime mesh must remain skinned")
-		assert(instance.mesh.get_surface_count() == 2, "only the chalk and charcoal material surfaces are exported")
+		assert(instance.mesh.get_surface_count() <= 2, "each module uses simple matte surfaces")
 		for surface in range(instance.mesh.get_surface_count()):
 			var arrays := instance.mesh.surface_get_arrays(surface)
 			var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
@@ -35,7 +39,7 @@ func verify(companion: bool) -> void:
 				var total := 0.0
 				for influence in range(influences): total += weights[vertex * influences + influence]
 				assert(absf(total - 1.0) < 0.001, "every vertex needs normalized skin weights")
-	assert(triangles < 5000, "character remains within the low-poly geometry budget")
+	assert(triangles < 17000, "character remains within the rounded silhouette geometry budget")
 	character.animate_pose(1.0, 0.0)
 	var hand := skeleton.find_bone("hand_L")
 	skeleton.force_update_all_bone_transforms()

@@ -1,31 +1,33 @@
-# Blender character workflow
+# Modular Blender character workflow
 
-The girl is `reference_character.blend`; the guy is `companion_character.blend`. Both are exported as matching GLBs under `assets/characters/`. Blender is only needed for editing, not playing.
+The active workflow is `modular_character.py`, followed by `build_wardrobe.py`. The earlier `refine_character.py` and `build_character.py` are historical sources of control cages and identity details. Do not use their fused-body export as the active character workflow.
 
-## Edit and review
+## Reusable body template
 
-`refine_character.py` opens the preserved `reference_character_base.blend` and edits its actual mesh vertices. It retains the 15-bone armature. The old disconnected body shells made organic junctions impractical, so only the edited body and skull are retopologized. Body surfaces are voxel-united, physically relaxed, reduced to broad low-poly facets, then assigned barycentrically transferred and normalized weights from the original surfaces. This removes lathe bands and hard shoulder/wrist/hip/ankle joins. The rounded skull uses blended corner normals; body and cloth remain flat shaded. No subdivision or textures are added.
+`reference_character.blend` and `companion_character.blend` contain ten independent body meshes under the existing 15-bone armature:
 
-```
-blender --background --factory-startup --python art/character/refine_character.py
-```
+HEAD, TORSO, ARM_LEFT, ARM_RIGHT, HAND_LEFT, HAND_RIGHT, LEG_LEFT, LEG_RIGHT, FOOT_LEFT, FOOT_RIGHT.
 
-Inspect the front, side and back PNGs for both variants under `artifacts/sculpt-review/`. Check silhouette and accessory clipping before export. The original game screenshots guide body shape; the supplied photos guide only simple identity features. They remain local study references and are not embedded as textures.
+Face, hood or hair, glasses and facial accessories remain separate identity meshes bound to the head bone. Each body module has its own mesh datablock and origin. Arms remain continuous across the elbow and legs across the knee; hands and feet stay independent. Small shoulder, wrist, hip and ankle overlaps conceal the joints.
 
-After static review:
+The proportion pass changes control-cage vertices rather than increasing geometry: a larger head relative to the body, a shorter and wider torso, bowed chunky limbs, flattened irregular mittens and forward-projecting shoes. The original identity is scaled as one unit. Rest-bone positions follow these proportion edits so the existing pose controller still bends at the joints. The earlier pre-soft and identity source files preserve the previous editable geometry.
 
-```
-blender --background --factory-startup --python art/character/refine_character.py -- --export --skip-render
-```
+Run Blender in background with `--python art/character/modular_character.py -- --girl` or `--guy`. Inspect front, side and back renders in `artifacts/modular-review/` before adding `--export`. Export preserves separate mesh nodes; it never joins or voxel-unions the body. `modular-report.json` records the independent object and transform checks.
 
-Editable meshes and armatures are saved before copies are joined for runtime export. Each GLB has one mesh, two matte material surfaces, 15 bones and fewer than 5,000 triangles. Current counts are in `model-report.json`. The baseline makes repeated edits non-cumulative. `build_character.py` is the earlier baseline-construction script, not the active refinement workflow.
+## Independent clothing
 
-## Godot validation
+`build_wardrobe.py` first verifies all ten body modules. It creates SWEATER_TORSO, SWEATER_SLEEVE_LEFT, SWEATER_SLEEVE_RIGHT, PANTS_LEFT, PANTS_RIGHT, SHOES_LEFT, SHOES_RIGHT and optional collar, waistband and cuffs. Custom profiles and one existing level of silhouette subdivision round their control cages. No cloth simulation, particle fur, body recoloring or body-clothing union is used.
 
-`GardenCharacter` inherits the existing controller and pose equations from `scripts/legacy/procedural_character.gd`. The player loads the hijab variant and the companion loads the guy. Bone rotations are mapped on top of the imported rest orientations. The existing idle, walk, sprint, airborne and carrying states remain procedural; no AnimationTree or baked replacement actions are required. `-- --procedural-character` selects the complete previous implementation.
+The sweater torso and waistband follow the body bone. Sleeves blend only between their matching upper-arm and forearm bones; trousers blend only between their thigh and calf bones. Shoes follow the foot bones. This prevents nearby hands or thighs from dragging the sweater torso during animation.
 
-Run `tests/imported_character.gd` in headless Godot to check both assets, skin weights, triangle/material budgets and pose transitions. Run the gameplay `--self-test` with both visual modes. Inspect Godot captures `characters`, `characters-side`, `characters-back`, `characters-motion`, `characters-jump` and `characters-carry`. `tests/imported_character_render.gd` runs a short native rendered benchmark in the garden scene.
+Run `build_wardrobe.py -- --girl` or `--guy`, inspect the three views in `artifacts/wardrobe/`, then add `--export`. Editable garment scenes are `girl_wardrobe.blend` and `guy_wardrobe.blend`. GLBs are under `assets/characters/`. Garments and body modules retain independent transforms in Blender and Godot.
 
-The guy has rounded rectangular frames. A narrow gap beside the ribs and hips prevents the voxel pass from welding wrists to the torso; wrist and elbow bone rests follow the adjusted arm geometry. Check the raised-arm throw pose as well as walking after changes. Pickup and throwing use the existing pose controller with a timed action overlay and a wrist-spacing solve that keeps both mittens around the fruit.
+## Godot verification
 
-Scenario one partitions the companion runtime mesh by existing skin influences to hide his head, complete right arm and left leg. The first-stage arm collectible comes from those same triangles and materials; the head stays missing. Restoration rebuilds the visible index lists while retaining the imported skin and controller. Blender source remains complete. The small flower is a lightweight head-bone accessory added in Godot, separate from the editable Blender body.
+`GardenCharacter` keeps the existing controller and pose equations. Birthday garments bind to its existing Skeleton3D. Covered body modules are hidden while hands, face, identity details and the separate shoes remain visible. `GardenCompanionParts` hides or restores whole modules and builds collectible geometry from those modules. The earlier procedural fallback remains available with `-- --procedural-character`.
+
+Run `tests/imported_character.gd` to check ten body modules, the bone contract, finite vertices and normalized weights. Run `tests/soft_visuals.gd` for garment modules, binding and torso-weight isolation. Native execution captures front, side, back, walk, jump and throw poses in `artifacts/soft-review/`.
+
+Run `tests/journey_flow.gd`, `tests/reunion_cake.gd` and the normal `--self-test` after rig or interaction changes. `tests/reunion_cake.gd -- --capture-reunion` captures the actual native game sequence. The before/after sheets under `artifacts/proportion-review/` use equal displayed character heights and matching camera angles.
+
+Study references are in the adjacent Bewerbung workspace's `game reference` folder. They are not shipping assets. Preserve the girl's hijab, glasses and flower and the guy's short hair, rectangular glasses, mustache and goatee.

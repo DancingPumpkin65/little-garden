@@ -5,3 +5,7 @@ references/*.png
 
 art/character/*.blend1
 references/*.png.import
+
+# Local Blender backup files are not source inputs.
+*.blend1
+art/character/*_pre_soft.blend
