@@ -13,6 +13,9 @@ var two_legs := false
 var directed_move := false
 var move_target := Vector3.ZERO
 var door_gesture := 0.0
+var birthday_outfit := false
+var outfit_blend := 0.0
+var outfit_materials: Array[ShaderMaterial] = []
 var follow_target: Node3D
 var imported_skeleton: Skeleton3D
 var action := ""
@@ -74,6 +77,9 @@ func _ready() -> void:
 	if not npc: add_head_flower()
 
 func _physics_process(delta: float) -> void:
+	if birthday_outfit and outfit_blend<1:
+		outfit_blend = minf(1,outfit_blend+delta*1.2)
+		for material in outfit_materials: material.set_shader_parameter("reveal",smoothstep(0,1,outfit_blend))
 	if npc and (follow_target != null or directed_move):
 		if two_legs: update_companion_walk(delta)
 		else: update_companion_hop(delta)
@@ -282,3 +288,61 @@ func flower_lobe(parent: Node3D, at: Vector3, size: Vector3, material: Material)
 	mesh.radius = 0.5
 	mesh.height = 1
 	return Shapes.mesh(parent, mesh, at, material, size)
+
+# Rest-pose bone weights mark clothing without recoloring the face, hands or hijab.
+func put_on_birthday_outfit() -> void:
+	if birthday_outfit: return
+	birthday_outfit = true
+	if imported_skeleton == null:
+		var sweater := Shapes.material(Color("4272ca") if npc else Color("5ed6e3"))
+		var pants := Shapes.material(Color("20242c") if npc else Color("8be4eb"))
+		for child in visual.get_children():
+			if child is MeshInstance3D: child.material_override = sweater
+		for limb in [left_arm,right_arm,left_leg,right_leg]:
+			for child in limb.get_children():
+				if child is MeshInstance3D: child.material_override = pants if limb in [left_leg,right_leg] else sweater
+		return
+	for node in model_root.find_children("*","MeshInstance3D",true,false):
+		var instance := node as MeshInstance3D
+		if instance.skin == null: continue
+		var source := instance.mesh
+		var colored := ArrayMesh.new()
+		for surface in range(source.get_surface_count()):
+			var arrays := source.surface_get_arrays(surface)
+			var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
+			var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
+			var influences := weights.size()/vertices.size()
+			var colors := PackedColorArray()
+			for vertex in range(vertices.size()):
+				var pants := 0.0
+				var sweater := 0.0
+				for i in range(influences):
+					var bind := bones[vertex*influences+i]
+					var name := instance.skin.get_bind_name(bind)
+					if name.is_empty(): name = imported_skeleton.get_bone_name(instance.skin.get_bind_bone(bind))
+					var weight := weights[vertex*influences+i]
+					if name in [&"thigh_L",&"thigh_R",&"calf_L",&"calf_R"]: pants += weight
+					elif name in [&"arm_L",&"arm_R",&"forearm_L",&"forearm_R",&"spine",&"body",&"pelvis",&"root"]: sweater += weight
+				colors.append(Color(pants,sweater,0,1))
+			arrays[Mesh.ARRAY_COLOR] = colors
+			colored.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
+			var material := ShaderMaterial.new()
+			material.shader = Shader.new()
+			material.shader.code = "shader_type spatial; uniform vec4 base_color:source_color=vec4(1.0); uniform vec4 sweater:source_color; uniform vec4 pants:source_color; uniform float reveal=0.0; void fragment(){vec3 cloth=mix(base_color.rgb,pants.rgb,COLOR.r);cloth=mix(cloth,sweater.rgb,COLOR.g);ALBEDO=mix(base_color.rgb,cloth,reveal);ROUGHNESS=1.0;SPECULAR=0.0;}"
+			var original := source.surface_get_material(surface) as BaseMaterial3D
+			material.set_shader_parameter("base_color",original.albedo_color if original!=null else Color.WHITE)
+			material.set_shader_parameter("sweater",Color("4272ca") if npc else Color("5ed6e3"))
+			material.set_shader_parameter("pants",Color("20242c") if npc else Color("8be4eb"))
+			colored.surface_set_material(surface,material)
+			outfit_materials.append(material)
+		instance.mesh = colored
+	if not npc:
+		for bone: StringName in [&"foot_L",&"foot_R"]:
+			var cuff := BoneAttachment3D.new()
+			cuff.bone_name = bone
+			imported_skeleton.add_child(cuff)
+			# A small scalloped fleece edge follows the ankle bone.
+			for i in range(7):
+				var a := i*TAU/7
+				GardenBloom.lobe(cuff,Vector3(cos(a)*0.14,0.03,sin(a)*0.14),Vector3.ONE*0.11,Color("8be4eb"))

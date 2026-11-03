@@ -2,7 +2,7 @@ class_name GardenReunion
 extends Node3D
 signal dialogue_requested(lines: Array[String])
 signal glass_impact(broken: bool)
-enum Phase { WAIT, INTRO, MERGE, READY, LEAD, DOOR, PASSAGE, CAKE }
+enum Phase { WAIT, INTRO, MERGE, READY, LEAD, DOOR, PASSAGE, CAKE, BIRTHDAY }
 const DOOR_Z := -52.0
 const NEXT_ENTRY := DOOR_Z - 80.0
 const CAKE_Z := NEXT_ENTRY - 16.0
@@ -20,12 +20,28 @@ var passage: Node3D
 var passage_material: ShaderMaterial
 var glass: GardenGlass
 var head: GardenRecoveryPart
-var flowers: Array[Node3D] = []
-var flower_scales: Array[float] = []
+var flowers: Array[GardenBloom] = []
+var flower_growth: Array[float] = []
 var near_line := false
 var introduced := false
 var destination: Node3D
 var cake_floor: MeshInstance3D
+var cake_floor_body: StaticBody3D
+var cake_visual: Node3D
+var plinth_visual: Node3D
+var birthday: GardenBirthday
+var birthday_clock := 0.0
+var birthday_dialogue_started := false
+var speech_from_head := false
+var missed_shots := 0
+const HIT_LINES: Array[String] = ["Aaaay, kunt 3arfek bghiti darbini mn ch7al hadi...", "Salmaaaaa ghatharssi rassi huwa lwal... :')", "WEEEEEEEEEEEE!!!"]
+const BIRTHDAY_LINES: Array[String] = [
+	"Happy birthday!!!",
+	"Raki kbarti oweliti wa7ed l2inssana wa3ra",
+	"Kima kabrat had jerda, tantiya kberti o ba9i ghatkabri... :')",
+	"Knatmana lik kul khir, odkhel 3lik sna jdida bachma tmaniti inchallah!",
+	"Tmachay fjarda tchufiha kidayra :3"
+]
 var root: Node3D
 var safe_position := Vector3(0,0.04,3)
 func setup(player: GardenCharacter, companion: GardenCharacter, body_parts: GardenCompanionParts, world: Node3D) -> void:
@@ -45,21 +61,35 @@ func activate(loose_leg: MeshInstance3D) -> void:
 	for i in range(7):
 		var flower := make_flower(Vector3((-1 if i%2==0 else 1)*2.2,0,-8-i*5.6))
 		flowers.append(flower)
-		flower_scales.append(0.0)
-		flower.scale = Vector3.ONE*0.001
-func make_flower(at: Vector3) -> Node3D:
-	var flower := Node3D.new()
-	root.add_child(flower)
+		flower_growth.append(0.0)
+
+func make_flower(at: Vector3) -> GardenBloom:
+	var flower := GardenBloom.new()
 	flower.position = at
-	var stem := Shapes.material(Color("6a8a72"))
-	Shapes.cylinder(flower,Vector3(0,0.2,0),0.016,0.4,stem)
-	Shapes.sphere(flower,Vector3(0.07,0.16,0),Vector3(0.17,0.045,0.07),stem).rotation.z = 0.5
-	var petal := Shapes.material(Color("eeeeee"))
-	for i in range(5):
-		var a := i*TAU/5
-		Shapes.sphere(flower,Vector3(cos(a)*0.1,0.41,sin(a)*0.1),Vector3(0.15,0.035,0.11),petal)
-	Shapes.sphere(flower,Vector3(0,0.43,0),Vector3(0.08,0.035,0.08),Shapes.material(Color("d7c888")))
+	flower.color = Color("eeeeee")
+	root.add_child(flower)
 	return flower
+
+func head_missed() -> void:
+	if phase != Phase.CAKE: return
+	missed_shots += 1
+	var lines: Array[String] = ["Darbi zaj machi lhwa" if missed_shots==1 else "Wa9ila ma3afach tchayeri..."]
+	dialogue_requested.emit(lines)
+
+func on_glass_impact(broken: bool) -> void:
+	glass_impact.emit(broken)
+	var lines: Array[String] = [HIT_LINES[glass.hits-1]]
+	dialogue_requested.emit(lines)
+	if broken:
+		phase = Phase.BIRTHDAY
+		birthday_clock = 0
+		girl.put_on_birthday_outfit()
+		guy.put_on_birthday_outfit()
+		birthday = GardenBirthday.new()
+		destination.add_child(birthday)
+		birthday.setup(Vector3(0,0,CAKE_Z),girl,cake_floor,cake_floor_body,cake_visual,plinth_visual)
+		head.ground_bounds = Rect2(Vector2(-55,CAKE_Z-48),Vector2(110,96))
+
 func dialogue_finished() -> void:
 	if not active: return
 	if phase == Phase.INTRO:
@@ -82,16 +112,17 @@ func build_destination() -> void:
 	Shapes.box(passage,Vector3(0,-0.07,DOOR_Z-40),Vector3(5,0.18,80),passage_material)
 	Shapes.collider(passage,Vector3(0,-0.48,DOOR_Z-40),Vector3(5,1,80))
 	cake_floor = Shapes.box(destination,Vector3(0,-0.48,NEXT_ENTRY-24),Vector3(70,1,48),passage_material)
-	Shapes.collider(destination,Vector3(0,-0.48,NEXT_ENTRY-24),Vector3(70,1,48))
+	cake_floor_body = Shapes.collider(destination,Vector3(0,-0.48,NEXT_ENTRY-24),Vector3(70,1,48))
 	build_cake()
 	glass = GardenGlass.new()
 	destination.add_child(glass)
 	glass.position.z = CAKE_Z
-	glass.impact.connect(func(broken: bool): glass_impact.emit(broken))
+	glass.impact.connect(on_glass_impact)
 	head = GardenRecoveryPart.new()
 	destination.add_child(head)
 	head.setup(&"head",parts.loose_mesh(&"head"),parts,girl)
 	head.hit_target = glass
+	head.missed.connect(head_missed)
 	head.ground_center = Vector3(0,0,NEXT_ENTRY-24)
 	head.ground_radius = 42
 	head.ground_bounds = Rect2(Vector2(-35,NEXT_ENTRY-48),Vector2(70,48))
@@ -104,21 +135,27 @@ func build_destination() -> void:
 	for i in range(2):
 		var flower := make_flower(Vector3(-1.5 if i==0 else 1.5,0,DOOR_Z-24-i*28))
 		flowers.append(flower)
-		flower_scales.append(0.0)
-		flower.scale = Vector3.ONE*0.001
+		flower_growth.append(0.0)
+
 func build_cake() -> void:
 	var white := Shapes.material(Color("ededed"))
+	plinth_visual = Node3D.new()
+	destination.add_child(plinth_visual)
 	for i in range(3):
-		Shapes.cylinder(destination,Vector3(0,0.16+i*0.32,CAKE_Z),2.15-i*0.3,0.32,white)
+		Shapes.cylinder(plinth_visual,Vector3(0,0.16+i*0.32,CAKE_Z),2.15-i*0.3,0.32,white)
+	cake_visual = Node3D.new()
+	destination.add_child(cake_visual)
+	cake_visual.position.z = CAKE_Z
 	var pink := Shapes.material(Color("d6a2bf"))
-	Shapes.cylinder(destination,Vector3(0,1.6,CAKE_Z),0.6,0.45,pink)
-	Shapes.cylinder(destination,Vector3(0,1.86,CAKE_Z),0.61,0.09,white)
+	Shapes.cylinder(cake_visual,Vector3(0,1.6,0),0.6,0.45,pink)
+	Shapes.cylinder(cake_visual,Vector3(0,1.86,0),0.61,0.09,white)
 	for i in range(8):
 		var a := i*TAU/8
-		Shapes.sphere(destination,Vector3(cos(a)*0.54,1.79,CAKE_Z+sin(a)*0.54),Vector3(0.17,0.21,0.17),white)
+		Shapes.sphere(cake_visual,Vector3(cos(a)*0.54,1.79,sin(a)*0.54),Vector3(0.17,0.21,0.17),white)
 	var decoration := make_flower(Vector3(0,1.91,CAKE_Z))
-	decoration.scale = Vector3.ONE*0.7
-	decoration.reparent(destination)
+	decoration.open_now()
+	decoration.reparent(cake_visual)
+
 func lead_to(target: Vector3) -> void:
 	guy.directed_move = true
 	guy.move_target = target
@@ -129,8 +166,8 @@ func _physics_process(delta: float) -> void:
 	if girl.is_on_floor(): safe_position = girl.position
 	for i in range(flowers.size()):
 		if phase >= Phase.LEAD and guy.position.z < flowers[i].position.z+4:
-			flower_scales[i] = minf(1,flower_scales[i]+delta*1.5)
-			flowers[i].scale = Vector3.ONE*maxf(0.001,smoothstep(0,1,flower_scales[i]))
+			flowers[i].start()
+			flower_growth[i] = flowers[i].progress
 	if passage_material != null: passage_material.set_shader_parameter("walker",girl.global_position)
 	if destination != null and girl.position.z < NEXT_ENTRY+22: destination.show()
 	if phase == Phase.WAIT:
@@ -186,5 +223,12 @@ func _physics_process(delta: float) -> void:
 		guy.waiting_for_arm = false
 		if not introduced and girl.position.distance_to(Vector3(0,0,CAKE_Z))<10:
 			introduced = true
-			var lines: Array[String] = ["Khasski tharssi zaj bach takhdi lcadeau dyalk..."]
+			speech_from_head = true
+			var lines: Array[String] = ["Khasski tharssi zaj bach takhdi lcadeau dyalk...", "Ach ban lik thazi rass dyali otharssi bih zaj..."]
 			dialogue_requested.emit(lines)
+
+	elif phase == Phase.BIRTHDAY:
+		birthday_clock += delta
+		if birthday_clock>3.5 and not birthday_dialogue_started:
+			birthday_dialogue_started = true
+			dialogue_requested.emit(BIRTHDAY_LINES)

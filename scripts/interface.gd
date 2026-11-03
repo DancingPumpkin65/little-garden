@@ -12,6 +12,7 @@ var objective: Label
 var dialogue: Label
 var bubble := PanelContainer.new()
 var bubble_tail := Polygon2D.new()
+var bubble_tail_shadow := Polygon2D.new()
 var charge := ProgressBar.new()
 var curtain := ColorRect.new()
 var finish: Label
@@ -63,6 +64,7 @@ func _ready() -> void:
 	speech_font.font_weight = 700
 	dialogue.add_theme_font_override("font", speech_font)
 	dialogue.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dialogue.visible_characters_behavior = TextServer.VC_CHARS_AFTER_SHAPING
 	dialogue.custom_minimum_size = Vector2(300, 0)
 	var bubble_style := StyleBoxFlat.new()
 	bubble_style.bg_color = Color.WHITE
@@ -79,6 +81,9 @@ func _ready() -> void:
 	bubble.add_child(dialogue)
 	root.add_child(bubble)
 	bubble_tail.polygon = PackedVector2Array([Vector2(-10, -2), Vector2(10, -2), Vector2(0, 14)])
+	bubble_tail_shadow.polygon = bubble_tail.polygon
+	bubble_tail_shadow.color = Color.BLACK
+	bubble.add_child(bubble_tail_shadow)
 	bubble_tail.color = Color.WHITE
 	bubble.add_child(bubble_tail)
 	bubble.hide()
@@ -144,6 +149,15 @@ func speech(text: String) -> void:
 	typing_clock = 0
 	spoken_letters = 0
 	bubble.visible = not text.is_empty()
+	# Shape the complete message before revealing characters. The PanelContainer
+	# paints both background and shadow from this one measured rectangle.
+	var font := dialogue.get_theme_font("font")
+	var font_size := dialogue.get_theme_font_size("font_size")
+	var width := minf(380,get_viewport().get_visible_rect().size.x-76)
+	var measured := font.get_multiline_string_size(dialogue.text,HORIZONTAL_ALIGNMENT_LEFT,width,font_size)
+	dialogue.custom_minimum_size = Vector2(width,maxf(font.get_height(font_size),measured.y))
+	bubble.custom_minimum_size = dialogue.custom_minimum_size+Vector2(44,33)
+	bubble.size = bubble.custom_minimum_size
 	bubble.reset_size()
 
 # Projected every frame so speech stays attached while the camera or speaker moves.
@@ -155,6 +169,7 @@ func place_speech(camera: Camera3D, world_position: Vector3) -> void:
 	bubble.visible = bubble.visible and Rect2(Vector2.ZERO, viewport_size).has_point(point)
 	bubble.position = Vector2(clampf(point.x - bubble.size.x / 2, 16, viewport_size.x - bubble.size.x - 16), maxf(16, point.y - bubble.size.y - 22))
 	bubble_tail.position = Vector2(clampf(point.x - bubble.position.x, 24, bubble.size.x - 24), bubble.size.y)
+	bubble_tail_shadow.position = bubble_tail.position+Vector2(0,8)
 
 func _process(delta: float) -> void:
 	if get_tree().paused or dialogue.visible_characters >= dialogue.text.length(): return
@@ -163,9 +178,9 @@ func _process(delta: float) -> void:
 		typing_clock -= LETTER_INTERVAL
 		var letter := dialogue.text.substr(dialogue.visible_characters, 1)
 		dialogue.visible_characters += 1
-		if letter in [".", "!", "?", "؟"]:
+		if letter in [".", "!", "?", "ØŸ"]:
 			typing_clock -= 0.17
-		elif letter in [",", ":", ";", "،", "؛"]:
+		elif letter in [",", ":", ";", "ØŒ", "Ø›"]:
 			typing_clock -= 0.07
 		elif not letter.strip_edges().is_empty():
 			spoken_letters += 1

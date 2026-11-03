@@ -2,6 +2,7 @@ class_name GardenRecoveryPart
 extends Node3D
 
 signal returned(kind: StringName)
+signal missed
 enum State { HIDDEN, EMERGING, AVAILABLE, PICKING, CARRIED, THROWN, RETURNING, RESTORED }
 var state := State.HIDDEN
 var kind: StringName
@@ -81,10 +82,12 @@ func _physics_process(delta: float) -> void:
 		if global_position.y < -5:
 			home = return_home
 			state = State.AVAILABLE
+			if not hit_this_throw: missed.emit()
 		elif global_position.y < 0.55 and over_ground():
 			home = Vector3(global_position.x, 0.55, global_position.z)
 			visual.rotation.x = 0
 			state = State.AVAILABLE
+			if not hit_this_throw: missed.emit()
 	elif state == State.RETURNING:
 		var progress := minf(1, clock / 0.8)
 		global_position = start.lerp(companion.anchor(kind), smoothstep(0, 1, progress)) + Vector3.UP * sin(progress * PI) * 0.3

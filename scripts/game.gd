@@ -528,7 +528,11 @@ func update_hud() -> void:
 	if screenshot_mode.begins_with("characters"): return
 	if stage == Stage.TITLE: return
 	if friend.visible and not transitioning:
-		hud.place_speech(camera, friend.global_position + Vector3.UP * 2.35)
+		var speaker := friend.global_position + Vector3.UP * 2.35
+		var story := journey.reunion
+		if story.speech_from_head and is_instance_valid(story.head):
+			speaker = story.head.global_position+Vector3.UP*0.75
+		hud.place_speech(camera,speaker)
 	else: hud.bubble.hide()
 	hud.charge.visible = charging
 	hud.charge.value = power * 100
