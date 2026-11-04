@@ -18,7 +18,9 @@ var curtain := ColorRect.new()
 var finish: Label
 var typing_clock := 0.0
 var spoken_letters := 0
-const LETTER_INTERVAL := 0.034
+const LETTER_INTERVAL := 0.044
+const SENTENCE_END := [".", "!", "?", "\u061f"]
+const CLAUSE_END := [",", ":", ";", "\u060c", "\u061b"]
 
 func label(text: String, size: int, color := Color("faf5e9")) -> Label:
 	var node := Label.new()
@@ -171,17 +173,35 @@ func place_speech(camera: Camera3D, world_position: Vector3) -> void:
 	bubble_tail.position = Vector2(clampf(point.x - bubble.position.x, 24, bubble.size.x - 24), bubble.size.y)
 	bubble_tail_shadow.position = bubble_tail.position+Vector2(0,8)
 
+# Ease into punctuation, then leave a short reading pause after it.
+func letter_delay(text: String, index: int) -> float:
+	var delay := LETTER_INTERVAL
+	for ahead in range(2):
+		if index+ahead < text.length():
+			var next := text[index+ahead]
+			if next in SENTENCE_END or next in CLAUSE_END:
+				delay *= 1.35 if ahead==0 else 1.18
+				break
+	if index>0:
+		var previous := text[index-1]
+		if previous in SENTENCE_END:
+			delay += 0.07 if index<text.length() and text[index] in SENTENCE_END else 0.21
+		elif previous in CLAUSE_END:
+			delay += 0.10
+	return delay
+
+func typing_duration(text: String) -> float:
+	var seconds := 0.0
+	for index in range(text.length()): seconds += letter_delay(text,index)
+	return seconds
+
 func _process(delta: float) -> void:
 	if get_tree().paused or dialogue.visible_characters >= dialogue.text.length(): return
 	typing_clock += delta
-	while typing_clock >= LETTER_INTERVAL and dialogue.visible_characters < dialogue.text.length():
-		typing_clock -= LETTER_INTERVAL
+	while dialogue.visible_characters < dialogue.text.length() and typing_clock >= letter_delay(dialogue.text,dialogue.visible_characters):
+		typing_clock -= letter_delay(dialogue.text,dialogue.visible_characters)
 		var letter := dialogue.text.substr(dialogue.visible_characters, 1)
 		dialogue.visible_characters += 1
-		if letter in [".", "!", "?", "ØŸ"]:
-			typing_clock -= 0.17
-		elif letter in [",", ":", ";", "ØŒ", "Ø›"]:
-			typing_clock -= 0.07
-		elif not letter.strip_edges().is_empty():
+		if not letter.strip_edges().is_empty() and not letter in SENTENCE_END and not letter in CLAUSE_END:
 			spoken_letters += 1
 			if spoken_letters % 2 == 1: letter_spoken.emit(letter)

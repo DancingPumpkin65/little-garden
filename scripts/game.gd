@@ -218,7 +218,7 @@ func set_transition_locked(value: bool) -> void:
 func say(text: String, seconds: float = 4.0) -> void:
 	dialogue_queue.clear()
 	hud.speech(text)
-	speech_time = maxf(seconds, text.length() * 0.045 + 2.0)
+	speech_time = maxf(seconds, hud.typing_duration(text) + 2.0)
 
 func say_sequence(lines: Array[String]) -> void:
 	dialogue_queue = lines.duplicate()
@@ -231,7 +231,7 @@ func next_dialogue() -> void:
 		return
 	var line := dialogue_queue.pop_front() as String
 	hud.speech(line)
-	speech_time = maxf(3.0, line.length() * 0.045 + 1.7)
+	speech_time = maxf(3.0, hud.typing_duration(line) + 1.7)
 
 func set_pause(value: bool) -> void:
 	pause = value
