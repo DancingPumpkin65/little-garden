@@ -66,9 +66,11 @@ for variant in variants:
   cross=Vector((0,0,1));other=direction.cross(cross).normalized()
   profiles=[]
   sleeve_profile=[(-.13,.12),(0,.18),(.15,.208),(.34,.235),(.53,.25),(.68,.242),(.82,.218),(.93,.17),(1,.128)] if variant=='girl' else [(-.13,.12),(0,.18),(.12,.205),(.29,.22),(.43,.22),(.46,.21)]
-  for t,r in sleeve_profile:profiles.append((shoulder.lerp(wrist,t),r,r*.95))
+  for t,r in sleeve_profile:
+   if variant=='girl':r*=.90
+   profiles.append((shoulder.lerp(wrist,t),r,r*.95))
   garments.append(shell('Puffed sleeve '+label,profiles,top,(other,cross)))
-  cuff_profile=[(shoulder.lerp(wrist,t),.144,.135) for t in [.96,1,1.025]] if variant=='girl' else [(shoulder.lerp(wrist,t),.218,.207) for t in [.425,.45,.47]]
+  cuff_profile=[(shoulder.lerp(wrist,t),.132,.124) for t in [.96,1,1.025]] if variant=='girl' else [(shoulder.lerp(wrist,t),.218,.207) for t in [.425,.45,.47]]
   garments.append(shell('Sleeve cuff '+label,cuff_profile,trim,(other,cross)))
   profiles=[]
   for y,rx,rz in [(.28,.135,.15),(.34,.18,.18),(.48,.21,.22),(.65,.208,.23),(.82,.195,.22),(.98,.18,.21),(1.13,.15,.15),(1.32,.10,.10)]:
