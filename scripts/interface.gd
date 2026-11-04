@@ -196,7 +196,7 @@ func typing_duration(text: String) -> float:
 	return seconds
 
 func _process(delta: float) -> void:
-	if get_tree().paused or dialogue.visible_characters >= dialogue.text.length(): return
+	if get_tree().paused or dialogue.visible_characters < 0 or dialogue.visible_characters >= dialogue.text.length(): return
 	typing_clock += delta
 	while dialogue.visible_characters < dialogue.text.length() and typing_clock >= letter_delay(dialogue.text,dialogue.visible_characters):
 		typing_clock -= letter_delay(dialogue.text,dialogue.visible_characters)

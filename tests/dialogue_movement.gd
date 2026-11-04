@@ -58,6 +58,9 @@ func run() -> void:
  assert(game.hud.dialogue.visible_characters==3,"comma leaves an extra reading pause")
  game.hud._process(0.04)
  assert(game.hud.dialogue.visible_characters==4,"typing resumes smoothly after punctuation")
+ game.hud.dialogue.visible_characters = -1
+ game.hud._process(0.1)
+ assert(game.hud.dialogue.visible_characters==-1,"Godot's reveal-all state does not restart the typewriter")
  for clip in [game.sound.voice_tone(148), game.sound.jump_tone()]:
   assert(clip.data.size() > 2000, "voice and jump have PCM samples")
   assert(clip.data.decode_s16(1000) != 0, "generated sound is audible")
