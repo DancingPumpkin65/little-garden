@@ -15,6 +15,23 @@ var move_target := Vector3.ZERO
 var door_gesture := 0.0
 var birthday_outfit := false
 var follow_target: Node3D
+@export_group("Birthday companion")
+@export var garden_walk_speed := 3.4
+@export var garden_run_speed := 6.6
+@export var garden_catchup_distance := 6.0
+@export var garden_stop_distance := 0.65
+@export var garden_hop_interval := Vector2(4.0,8.0)
+@export var garden_hop_strength := 3.4
+@export var garden_style_interval := Vector2(3.0,6.0)
+@export_range(0.0,1.0) var garden_run_chance := 0.3
+@export var birthday_dance_duration := 6.0
+var garden_mode := false
+var dance_remaining := 0.0
+var dance_clock := 0.0
+var garden_hop_wait := 0.0
+var garden_style_wait := 0.0
+var garden_running := false
+var garden_random := RandomNumberGenerator.new()
 var imported_skeleton: Skeleton3D
 var action := ""
 var action_phase := 0.0
@@ -75,12 +92,80 @@ func _ready() -> void:
 	if not npc: add_head_flower()
 
 func _physics_process(delta: float) -> void:
+	if npc and garden_mode:
+		update_garden_companion(delta)
+		return
 	if npc and (follow_target != null or directed_move):
 		if two_legs: update_companion_walk(delta)
 		else: update_companion_hop(delta)
 		return
 	super._physics_process(delta)
 	if npc and imported_skeleton != null: apply_joint_poses()
+
+func celebrate_in_garden(player: Node3D) -> void:
+	garden_mode = true
+	two_legs = true
+	directed_move = false
+	waiting_for_arm = false
+	follow_target = player
+	garden_random.randomize()
+	dance_remaining = birthday_dance_duration
+	dance_clock = 0
+	garden_hop_wait = garden_random.randf_range(garden_hop_interval.x,garden_hop_interval.y)
+	garden_style_wait = 0
+
+func update_garden_companion(delta: float) -> void:
+	if not is_instance_valid(follow_target): return
+	if dance_remaining>0:
+		# Let Salma leave the celebration without losing her companion.
+		if global_position.distance_to(follow_target.global_position)>6 and dance_clock>1.5:
+			dance_remaining = minf(dance_remaining,.4)
+		dance_remaining = maxf(0,dance_remaining-delta)
+		dance_clock += delta
+		var facing_player := follow_target.global_position-global_position
+		if Vector2(facing_player.x,facing_player.z).length()>.5:
+			visual.rotation.y = lerp_angle(visual.rotation.y,atan2(facing_player.x,facing_player.z)-global_rotation.y,1-exp(-delta*6))
+		velocity.x = move_toward(velocity.x,0,delta*20)
+		velocity.z = move_toward(velocity.z,0,delta*20)
+		if not is_on_floor(): velocity.y -= 18*delta
+		move_and_slide()
+		animate_pose(delta,0,true)
+		var blend := smoothstep(0,.45,dance_clock)*smoothstep(0,.4,dance_remaining)
+		var beat := dance_clock*TAU*1.35
+		visual.rotation.z = sin(beat)*.07*blend
+		visual.position.y = -.008*(1-cos(beat*2))*blend
+		left_arm.rotation.x = (-.55+sin(beat)*.25)*blend
+		right_arm.rotation.x = (-.55-sin(beat)*.25)*blend
+		left_arm.rotation.z = -.45-.15*blend
+		right_arm.rotation.z = .45+.15*blend
+		elbows[0].rotation.x = (-.3-.1*cos(beat))*blend
+		elbows[1].rotation.x = (-.3+.1*cos(beat))*blend
+		for knee in knees: knee.rotation.x = .12*(1-cos(beat*2))*blend
+		apply_joint_poses()
+		return
+	var offset := follow_target.global_position+follow_offset-global_position
+	offset.y = 0
+	var distance := offset.length()
+	garden_hop_wait -= delta
+	garden_style_wait -= delta
+	if garden_style_wait<=0:
+		garden_running = garden_random.randf()<garden_run_chance
+		garden_style_wait = garden_random.randf_range(garden_style_interval.x,garden_style_interval.y)
+	sprint = garden_running or distance>garden_catchup_distance
+	var speed := garden_run_speed if sprint else garden_walk_speed
+	speed = minf(speed,distance*3)
+	var direction := offset.normalized() if distance>garden_stop_distance else Vector3.ZERO
+	velocity.x = move_toward(velocity.x,direction.x*speed,delta*14)
+	velocity.z = move_toward(velocity.z,direction.z*speed,delta*14)
+	if not is_on_floor(): velocity.y -= 18*delta
+	elif garden_hop_wait<=0 and distance>1.4:
+		velocity.y = garden_hop_strength
+		garden_hop_wait = garden_random.randf_range(garden_hop_interval.x,garden_hop_interval.y)
+	move_and_slide()
+	var moving := Vector2(velocity.x,velocity.z).length()
+	if moving>.15: visual.rotation.y = lerp_angle(visual.rotation.y,atan2(velocity.x,velocity.z)-global_rotation.y,1-exp(-delta*9))
+	gait += moving*delta*TAU/(2.8 if sprint else 2.3)
+	animate_pose(delta,clampf(moving/garden_walk_speed,0,1),is_on_floor())
 
 # After reunion the same controller drives a normal two-leg walk.
 func update_companion_walk(delta: float) -> void:

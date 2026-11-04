@@ -85,6 +85,7 @@ func on_glass_impact(broken: bool) -> void:
 		birthday_clock = 0
 		girl.put_on_birthday_outfit()
 		guy.put_on_birthday_outfit()
+		guy.celebrate_in_garden(girl)
 		birthday = GardenBirthday.new()
 		destination.add_child(birthday)
 		birthday.setup(Vector3(0,0,CAKE_Z),girl,cake_floor,cake_floor_body,cake_visual,plinth_visual)

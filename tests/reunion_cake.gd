@@ -125,6 +125,7 @@ func run() -> void:
 			assert(story.glass.cracks.get_child_count()>0,"hits add visible cracks")
 			await shot("crack-"+str(hit),Vector3(0,0,GardenReunion.CAKE_Z+1))
 		else:
+			assert(game.friend.garden_mode and game.friend.dance_remaining>0,"third glass hit starts birthday dance and garden follow mode")
 			assert(story.glass.shards.size()==30 and not story.glass.shell.visible and story.glass.body.collision_layer==0,"third hit emits shards and removes shell")
 			await frames(12)
 			await shot("shattered",Vector3(0,0,GardenReunion.CAKE_Z+1))
