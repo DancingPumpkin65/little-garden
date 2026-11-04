@@ -62,7 +62,9 @@ func part_weight(arrays: Array, vertex: int, part: StringName) -> float:
 
 func refresh() -> void:
 	if not modules.is_empty():
-		for node in modules: node.visible = not missing.get(module_parts[node.name],false)
+		for node in modules:
+			var covered := actor.birthday_outfit and node.name in [&"TORSO",&"ARM_LEFT",&"ARM_RIGHT",&"LEG_LEFT",&"LEG_RIGHT",&"FOOT_LEFT",&"FOOT_RIGHT"]
+			node.visible = not covered and not missing.get(module_parts[node.name],false)
 		return
 	if arm_cap != null: arm_cap.visible = missing[&"arm"]
 	if original == null:

@@ -101,12 +101,16 @@ func run() -> void:
 	assert(game.journey.entry_sealed and not game.journey.arrival_open, "arrival door closes after both characters enter new area")
 	assert(game.journey.far_platform.scale.x == 70, "wide quest platforms")
 	game.player.drive = Vector3.FORWARD
-	await until(func(): return game.player.position.z < GardenJourney.EDGE_Z + 10)
+	await until(func(): return game.journey.dialogue_started)
 	game.player.drive = Vector3.ZERO
 	await frames(2)
-	assert(game.hud.dialogue.text == "Hahiya rjli fjiha lakhra.", "exact gap opening dialogue")
-	await frames(35)
+	assert(game.hud.dialogue.text == "Hahiya rajli fjiha lakhra", "exact gap opening dialogue")
+	var original_leg_view: Transform3D = game.basket_cue_return
+	await frames(90)
+	assert(game.camera.position.distance_to(original_leg_view.origin)>1 and game.hud.bubble.visible,"leg instruction frames the leg without hiding speech")
 	await shot("gap-leg")
+	await until(func(): return game.basket_cue_clock<0)
+	assert(game.camera.position.distance_to(original_leg_view.origin)<.2,"leg camera returns to the player view")
 	await until(func(): return game.journey.beat == GardenJourney.Beat.JUMP)
 	await frames(14)
 	await shot("failed-jump")

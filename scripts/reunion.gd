@@ -34,6 +34,19 @@ var birthday_clock := 0.0
 var birthday_dialogue_started := false
 var speech_from_head := false
 var missed_shots := 0
+enum HeadReunion { WAIT, APPROACH, LIFT, DONE }
+var head_reunion := HeadReunion.WAIT
+var head_lift_clock := 0.0
+var ambient_enabled := false
+@export var garden_comment_interval := Vector2(16.0,26.0)
+var garden_comment_wait := 18.0
+var last_garden_line := ""
+const GARDEN_COMMENTS: Array[String] = [
+	"Chufi! Fin kandouz kaytla3 lward :3",
+	"Wa had jerda katzid tzian bik!",
+	"Salma, had nhar dyalk. Khodi ra7tek :)",
+	"Kan9elleb 3la chi blassa zwina ntsawro fiha :P"
+]
 const HIT_LINES: Array[String] = ["Aaaay, kunt 3arfek bghiti darbini mn ch7al hadi...", "Salmaaaaa ghatharssi rassi huwa lwal... :')", "WEEEEEEEEEEEE!!!"]
 const BIRTHDAY_LINES: Array[String] = [
 	"Happy birthday!!!",
@@ -85,14 +98,19 @@ func on_glass_impact(broken: bool) -> void:
 		birthday_clock = 0
 		girl.put_on_birthday_outfit()
 		guy.put_on_birthday_outfit()
-		guy.celebrate_in_garden(girl)
+		guy.garden_mode = false
+		guy.directed_move = false
+		guy.follow_target = null
+		guy.waiting_for_arm = true
 		birthday = GardenBirthday.new()
 		destination.add_child(birthday)
 		birthday.setup(Vector3(0,0,CAKE_Z),girl,cake_floor,cake_floor_body,cake_visual,plinth_visual)
+		birthday.companion = guy
 		head.ground_bounds = Rect2(Vector2(-55,CAKE_Z-48),Vector2(110,96))
 
 func dialogue_finished() -> void:
 	if not active: return
+	if phase==Phase.BIRTHDAY and birthday_dialogue_started: ambient_enabled = true
 	if phase == Phase.INTRO:
 		phase = Phase.MERGE
 		clock = 0
@@ -124,6 +142,7 @@ func build_destination() -> void:
 	head.setup(&"head",parts.loose_mesh(&"head"),parts,girl)
 	head.hit_target = glass
 	head.missed.connect(head_missed)
+	head.returned.connect(head_restored)
 	head.ground_center = Vector3(0,0,NEXT_ENTRY-24)
 	head.ground_radius = 42
 	head.ground_bounds = Rect2(Vector2(-35,NEXT_ENTRY-48),Vector2(70,48))
@@ -230,6 +249,58 @@ func _physics_process(delta: float) -> void:
 
 	elif phase == Phase.BIRTHDAY:
 		birthday_clock += delta
+		update_head_reunion(delta)
+		update_garden_comments(delta)
 		if birthday_clock>3.5 and not birthday_dialogue_started:
 			birthday_dialogue_started = true
 			dialogue_requested.emit(BIRTHDAY_LINES)
+
+func update_head_reunion(delta: float) -> void:
+	if head_reunion==HeadReunion.WAIT and birthday_clock>2 and head.state==GardenRecoveryPart.State.AVAILABLE:
+		head.state = GardenRecoveryPart.State.PICKING
+		guy.directed_move = true
+		guy.waiting_for_arm = false
+		guy.move_target = Vector3(head.global_position.x,.02,head.global_position.z+1.0)
+		head_reunion = HeadReunion.APPROACH
+	elif head_reunion==HeadReunion.APPROACH and guy.position.distance_to(guy.move_target)<.5:
+		guy.waiting_for_arm = true
+		guy.action = "pickup"
+		head_lift_clock = 0
+		head_reunion = HeadReunion.LIFT
+	elif head_reunion==HeadReunion.LIFT:
+		head_lift_clock += delta
+		guy.action_phase = minf(1,head_lift_clock/.8)
+		if head_lift_clock>.45 and head.state==GardenRecoveryPart.State.PICKING: head.put_back()
+
+func head_restored(kind: StringName) -> void:
+	if kind!=&"head": return
+	head_reunion = HeadReunion.DONE
+	speech_from_head = false
+	guy.action = ""
+	guy.celebrate_in_garden(girl)
+	guy.garden_roaming = true
+	guy.garden_bounds = Rect2(Vector2(-43,CAKE_Z-36),Vector2(86,72))
+	guy.garden_camera = get_viewport().get_camera_3d()
+
+func update_garden_comments(delta: float) -> void:
+	if not ambient_enabled or head_reunion!=HeadReunion.DONE or guy.dance_remaining>0: return
+	garden_comment_wait -= delta
+	if garden_comment_wait>0 or not guy.garden_point_visible(guy.global_position) or guy.position.distance_to(girl.position)>9: return
+	var line := ""
+	if guy.velocity.length()<.35:
+		for flower in birthday.flowers+birthday.trail:
+			if flower.progress>.7 and flower.global_position.distance_to(guy.global_position)<2.3:
+				line = "Had lwarda zwina b7al Salma! :P"
+				guy.garden_interest_position = flower.global_position
+				break
+	if line.is_empty() or line==last_garden_line:
+		var choices: Array[String] = []
+		for comment in GARDEN_COMMENTS:
+			if comment!=last_garden_line: choices.append(comment)
+		line = choices[guy.garden_random.randi_range(0,choices.size()-1)]
+		guy.garden_interest_position = girl.global_position
+	last_garden_line = line
+	guy.garden_pause_remaining = clampf(line.length()*.11+1.5,4,7)
+	garden_comment_wait = guy.garden_random.randf_range(garden_comment_interval.x,garden_comment_interval.y)
+	var lines: Array[String] = [line]
+	dialogue_requested.emit(lines)

@@ -125,7 +125,7 @@ func run() -> void:
 			assert(story.glass.cracks.get_child_count()>0,"hits add visible cracks")
 			await shot("crack-"+str(hit),Vector3(0,0,GardenReunion.CAKE_Z+1))
 		else:
-			assert(game.friend.garden_mode and game.friend.dance_remaining>0,"third glass hit starts birthday dance and garden follow mode")
+			assert(story.head_reunion==GardenReunion.HeadReunion.WAIT,"third glass hit starts head reunion before dancing")
 			assert(story.glass.shards.size()==30 and not story.glass.shell.visible and story.glass.body.collision_layer==0,"third hit emits shards and removes shell")
 			await frames(12)
 			await shot("shattered",Vector3(0,0,GardenReunion.CAKE_Z+1))
@@ -175,8 +175,9 @@ func run() -> void:
 	await frames(160)
 	game.player.drive = Vector3.ZERO
 	assert(story.birthday.trail.size()>trail_before+3,"walking leaves a growing plant trail")
+	var planted_flower: GardenBloom = story.birthday.trail[-1]
 	await frames(150)
-	assert(story.birthday.trail[-1].progress>0.9,"trail flowers grow from stems rather than scaling whole plants")
+	assert(planted_flower.progress>0.9,"trail flowers grow from stems rather than scaling whole plants")
 	await shot("birthday-trail",game.player.position-Vector3.RIGHT*2)
 	game.player.visual.rotation.y = 0
 	game.friend.visual.rotation.y = -game.friend.rotation.y
@@ -186,12 +187,8 @@ func run() -> void:
 	game.set_physics_process(true)
 
 	assert(story.glass.shards.is_empty(),"shards clean up after animation")
-	assert(game.companion_parts.missing[&"head"],"throwing head does not incorrectly restore it")
-	story.head.state = GardenRecoveryPart.State.THROWN
-	story.head.position = Vector3(-2,2,GardenReunion.CAKE_Z-60)
-	story.head.velocity = Vector3(0,0,-3)
-	await frames(180)
-	assert(story.head.state == GardenRecoveryPart.State.AVAILABLE and story.head.home == story.head.return_home,"missed head outside map returns instead of hovering over void")
+	assert(not game.companion_parts.missing[&"head"] and story.head.state==GardenRecoveryPart.State.RESTORED,"body collects and restores its head after the glass breaks")
+	assert(game.friend.garden_roaming and story.birthday.companion==game.friend,"reunited companion roams and plants flowers")
 	game.set_pause(true)
 	game.hud.restarted.emit()
 	await frames(30)

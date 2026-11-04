@@ -53,6 +53,8 @@ var basket_cue_seen := false
 var basket_cue_clock := -1.0
 var basket_cue_duration := 0.0
 var basket_cue_return := Transform3D.IDENTITY
+var camera_cue_target := Transform3D.IDENTITY
+var leg_cue_seen := false
 var previous_ball_position := Vector3.ZERO
 const INTRO: Array[String] = [
 	"Salam Salma, labas?",
@@ -242,8 +244,14 @@ func next_dialogue() -> void:
 	var line := dialogue_queue.pop_front() as String
 	hud.speech(line)
 	speech_time = maxf(3.0, hud.typing_duration(line) + 1.7)
-	if line==BASKET_INSTRUCTION and not basket_cue_seen:
-		basket_cue_seen = true
+	var show_basket := line==BASKET_INSTRUCTION and not basket_cue_seen
+	var show_leg := line==GardenJourney.LEG_REVEAL_LINE and not leg_cue_seen
+	if show_basket or show_leg:
+		if show_basket: basket_cue_seen = true
+		else: leg_cue_seen = true
+		var subject := world.bowl+Vector3.UP*1.4 if show_basket else journey.leg.global_position+Vector3.UP*.4
+		var offset := Vector3(-3,3.1,7) if show_basket else Vector3(5,3,9)
+		camera_cue_target = Transform3D(Basis.IDENTITY,subject+offset).looking_at(subject)
 		basket_cue_clock = 0
 		basket_cue_duration = speech_time
 		basket_cue_return = camera.transform
@@ -314,7 +322,7 @@ func interact() -> void:
 	if transitioning or not player.action.is_empty(): return
 	if journey.chapter == GardenJourney.Chapter.DARK:
 		var head := journey.reunion.head
-		if carried_part == null and head != null and head.state == GardenRecoveryPart.State.AVAILABLE and player.position.distance_to(head.position)<2:
+		if journey.reunion.phase==GardenReunion.Phase.CAKE and carried_part == null and head != null and head.state == GardenRecoveryPart.State.AVAILABLE and player.position.distance_to(head.position)<2:
 			pickup_part(head)
 		return
 	if journey.chapter != GardenJourney.Chapter.FIRST: return
@@ -532,9 +540,7 @@ func _physics_process(delta: float) -> void:
 	if basket_cue_clock>=0:
 		basket_cue_clock += delta
 		var weight := smoothstep(0,1,basket_cue_clock)*smoothstep(0,1,basket_cue_duration-basket_cue_clock)
-		var target := Transform3D(Basis.IDENTITY,world.bowl+Vector3(-3,4.5,7))
-		target = target.looking_at(world.bowl+Vector3.UP*1.4)
-		camera.transform = basket_cue_return.interpolate_with(target,weight)
+		camera.transform = basket_cue_return.interpolate_with(camera_cue_target,weight)
 		if basket_cue_clock>=basket_cue_duration: basket_cue_clock = -1
 	if screenshot_mode.begins_with("characters"):
 		camera.position = Vector3(0, 2.9, 7.6)

@@ -1,5 +1,7 @@
 # Birthday companion motion
 
+This records the earlier headless celebration pass. The [reunited garden update](../reunited-garden/README.md) now restores the head before dancing and adds autonomous roaming and comments.
+
 The third glass hit starts a six-second celebration. The body faces Salma and sways with alternating arm and elbow movement and small knee bends. The pose fades in and out. If Salma leaves during the dance, it finishes early after a short celebration so he can follow her.
 
 ![Dance preview](dance.gif)

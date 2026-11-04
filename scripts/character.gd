@@ -25,6 +25,15 @@ var follow_target: Node3D
 @export var garden_style_interval := Vector2(3.0,6.0)
 @export_range(0.0,1.0) var garden_run_chance := 0.3
 @export var birthday_dance_duration := 6.0
+@export var garden_roam_radius := 4.5
+@export var garden_goal_interval := Vector2(2.5,5.0)
+var garden_roaming := false
+var garden_camera: Camera3D
+var garden_bounds := Rect2()
+var garden_goal := Vector3.ZERO
+var garden_goal_wait := 0.0
+var garden_pause_remaining := 0.0
+var garden_interest_position := Vector3.INF
 var garden_mode := false
 var dance_remaining := 0.0
 var dance_clock := 0.0
@@ -143,7 +152,34 @@ func update_garden_companion(delta: float) -> void:
 		for knee in knees: knee.rotation.x = .12*(1-cos(beat*2))*blend
 		apply_joint_poses()
 		return
-	var offset := follow_target.global_position+follow_offset-global_position
+	var target := follow_target.global_position+follow_offset
+	if garden_roaming:
+		if garden_bounds.has_area():
+			target.x = clampf(target.x,garden_bounds.position.x,garden_bounds.end.x)
+			target.z = clampf(target.z,garden_bounds.position.y,garden_bounds.end.y)
+		garden_goal_wait -= delta
+		if garden_goal_wait<=0 or garden_goal.distance_to(follow_target.global_position)>9 or not garden_point_visible(garden_goal):
+			garden_goal_wait = garden_random.randf_range(garden_goal_interval.x,garden_goal_interval.y)
+			garden_goal = target
+			for attempt in range(8):
+				var candidate := target+Vector3(garden_random.randf_range(-garden_roam_radius,garden_roam_radius),0,garden_random.randf_range(-garden_roam_radius,garden_roam_radius))
+				if candidate.distance_to(follow_target.global_position)<1.8: continue
+				if garden_bounds.has_area():
+					candidate.x = clampf(candidate.x,garden_bounds.position.x,garden_bounds.end.x)
+					candidate.z = clampf(candidate.z,garden_bounds.position.y,garden_bounds.end.y)
+				if garden_point_visible(candidate):
+					garden_goal = candidate
+					break
+			target = garden_goal
+		else: target = garden_goal
+	if garden_pause_remaining>0:
+		if global_position.distance_to(follow_target.global_position)>9: garden_pause_remaining = 0
+		garden_pause_remaining -= delta
+		target = global_position
+		if garden_interest_position.is_finite():
+			var interest := garden_interest_position-global_position
+			visual.rotation.y = lerp_angle(visual.rotation.y,atan2(interest.x,interest.z)-global_rotation.y,1-exp(-delta*5))
+	var offset := target-global_position
 	offset.y = 0
 	var distance := offset.length()
 	garden_hop_wait -= delta
@@ -166,6 +202,12 @@ func update_garden_companion(delta: float) -> void:
 	if moving>.15: visual.rotation.y = lerp_angle(visual.rotation.y,atan2(velocity.x,velocity.z)-global_rotation.y,1-exp(-delta*9))
 	gait += moving*delta*TAU/(2.8 if sprint else 2.3)
 	animate_pose(delta,clampf(moving/garden_walk_speed,0,1),is_on_floor())
+
+func garden_point_visible(point: Vector3) -> bool:
+	if not is_instance_valid(garden_camera): return true
+	if garden_camera.is_position_behind(point+Vector3.UP): return false
+	var area := garden_camera.get_viewport().get_visible_rect()
+	return area.grow(-minf(area.size.x,area.size.y)*.12).has_point(garden_camera.unproject_position(point+Vector3.UP))
 
 # After reunion the same controller drives a normal two-leg walk.
 func update_companion_walk(delta: float) -> void:
