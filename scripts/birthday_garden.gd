@@ -156,7 +156,9 @@ func grow_trail() -> void:
 	var flower := GardenBloom.new()
 	flower.position = behind+Vector3(random.randf_range(-0.22,0.22),0.02,random.randf_range(-0.22,0.22))
 	flower.height = random.randf_range(0.28,0.65)
-	flower.kind = trail.size()%3
+	flower.kind = [0,1,0,2,4,0,3,5][trail.size()%8]
+	if flower.kind==3: flower.height = random.randf_range(1.1,1.65)
+	elif flower.kind>=4: flower.height = random.randf_range(0.7,1.0)
 	flower.color = [Color("fff2aa"),Color("f6b9d3"),Color("c5b4ed"),Color.WHITE][trail.size()%4]
 	add_child(flower)
 	flower.start()

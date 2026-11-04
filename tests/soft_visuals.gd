@@ -17,7 +17,7 @@ func run() -> void:
  game.ball.hide()
  game.hud.hide()
  game.environment.background_color = Color("363e43")
- game.environment.ambient_light_energy = 0.75
+ game.environment.ambient_light_energy = 0.32
  for part in [&"head",&"arm",&"leg"]: game.companion_parts.restore(part)
  for actor: GardenCharacter in [game.player,game.friend]:
   actor.set_physics_process(false)
