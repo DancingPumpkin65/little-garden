@@ -7,6 +7,7 @@ signal resumed
 signal restarted
 signal mute_changed(muted: bool)
 var title_screen := Control.new()
+var play_button: Button
 var pause_screen := Control.new()
 var objective: Label
 var dialogue: Label
@@ -37,14 +38,29 @@ func button(text: String, callback: Callable) -> Button:
 	node.custom_minimum_size = Vector2(240, 52)
 	node.add_theme_font_size_override("font_size", 19)
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color("f0e7d7")
+	normal.bg_color = Color("ededed")
 	normal.corner_radius_top_left = 8
 	normal.corner_radius_top_right = 8
 	normal.corner_radius_bottom_left = 8
 	normal.corner_radius_bottom_right = 8
 	node.add_theme_stylebox_override("normal", normal)
-	for state in ["font_color", "font_focus_color", "font_hover_color", "font_pressed_color"]:
+	for state in ["hover", "pressed", "hover_pressed", "disabled"]:
+		var style := normal.duplicate() as StyleBoxFlat
+		style.bg_color = Color("ffffff") if state=="hover" else Color("c9c9c9")
+		node.add_theme_stylebox_override(state,style)
+	var focus := StyleBoxFlat.new()
+	focus.bg_color = Color.TRANSPARENT
+	focus.set_border_width_all(3)
+	focus.border_color = Color.WHITE
+	focus.expand_margin_left = 5
+	focus.expand_margin_right = 5
+	focus.expand_margin_top = 5
+	focus.expand_margin_bottom = 5
+	focus.set_corner_radius_all(10)
+	node.add_theme_stylebox_override("focus",focus)
+	for state in ["font_color", "font_focus_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_disabled_color"]:
 		node.add_theme_color_override(state, Color("323746"))
+	node.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	node.pressed.connect(callback)
 	return node
 
@@ -105,21 +121,37 @@ func _ready() -> void:
 	root.add_child(title_screen)
 	title_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var panel := ColorRect.new()
-	panel.color = Color(0.055, 0.065, 0.085, 0.55)
+	panel.color = Color.BLACK
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	title_screen.add_child(panel)
+	var preview := GardenTitleCharacter.new()
+	preview.name = "Floating character"
+	preview.anchor_left = 0.04
+	preview.anchor_right = 0.56
+	preview.anchor_top = 0.06
+	preview.anchor_bottom = 0.94
+	title_screen.add_child(preview)
+	var right := CenterContainer.new()
+	right.anchor_left = 0.57
+	right.anchor_right = 0.94
+	right.anchor_top = 0.12
+	right.anchor_bottom = 0.88
+	title_screen.add_child(right)
 	var column := VBoxContainer.new()
-	column.position = Vector2(90, 235)
 	column.add_theme_constant_override("separation", 18)
-	title_screen.add_child(column)
-	column.add_child(label("A little garden", 60))
-	column.add_child(label("Some things only need a little care.", 23))
+	right.add_child(column)
+	var heading := label("A little\ngarden", 54, Color.WHITE)
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(heading)
 	var spacer := Control.new()
 	spacer.custom_minimum_size.y = 16
 	column.add_child(spacer)
-	var start := button("Let's take a walk", func(): begin.emit())
-	column.add_child(start)
-	start.grab_focus()
+	play_button = button("Play", func(): begin.emit())
+	play_button.custom_minimum_size = Vector2(260,64)
+	play_button.add_theme_font_size_override("font_size",28)
+	column.add_child(play_button)
+	play_button.grab_focus()
+	title_screen.visibility_changed.connect(func(): preview.set_process(title_screen.visible))
 	root.add_child(pause_screen)
 	pause_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var shade := ColorRect.new()
