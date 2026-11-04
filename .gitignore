@@ -12,3 +12,6 @@ art/character/*_pre_soft.blend
 
 __pycache__/
 *.pyc
+
+# Review screenshots are documentation, not game resources.
+docs/**/*.import
