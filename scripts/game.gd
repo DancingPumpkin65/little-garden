@@ -48,11 +48,17 @@ var transitioning := false
 var journey := GardenJourney.new()
 var dust := GardenDust.new()
 var friend_dust := GardenDust.new()
+const BASKET_INSTRUCTION := "Khassek thazi limouna li 7dak otlu7iha f sela O"
+var basket_cue_seen := false
+var basket_cue_clock := -1.0
+var basket_cue_duration := 0.0
+var basket_cue_return := Transform3D.IDENTITY
+var previous_ball_position := Vector3.ZERO
 const INTRO: Array[String] = [
 	"Salam Salma, labas?",
-	"3arfek 3iyana yala jaya men lkhadma... :(",
+	"3arfek yala jaya men lkhadma, 3iyana o darek rassek o darak kerchek okulchi... :(",
 	"M7tajek t3awnini l9a body parts dyawli :)",
-	"Khassek thazi limouna li 7dak otlu7iha f dwara O"
+	BASKET_INSTRUCTION
 ]
 const MISS_JOKES: Array[String] = [
 	"Zgaltiha... Yakma ydik kaydarouk?",
@@ -74,6 +80,10 @@ func _ready() -> void:
 	friend.process_mode = Node.PROCESS_MODE_PAUSABLE
 	ball.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(world)
+	player.collision_layer = 4
+	player.collision_mask = 5
+	friend.collision_layer = 4
+	friend.collision_mask = 5
 	player.position = Vector3(0, 0.2, 5.7)
 	add_child(player)
 	friend.npc = true
@@ -232,6 +242,15 @@ func next_dialogue() -> void:
 	var line := dialogue_queue.pop_front() as String
 	hud.speech(line)
 	speech_time = maxf(3.0, hud.typing_duration(line) + 1.7)
+	if line==BASKET_INSTRUCTION and not basket_cue_seen:
+		basket_cue_seen = true
+		basket_cue_clock = 0
+		basket_cue_duration = speech_time
+		basket_cue_return = camera.transform
+		charging = false
+		orbiting = false
+		player.drive = Vector3.ZERO
+		player.jump_requested = false
 
 func set_pause(value: bool) -> void:
 	pause = value
@@ -244,11 +263,11 @@ func set_pause(value: bool) -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE and stage != Stage.TITLE and not transitioning: set_pause(not pause)
-		if pause or transitioning or stage == Stage.TITLE: return
+		if pause or transitioning or stage == Stage.TITLE or basket_cue_clock>=0: return
 		if event.keycode == KEY_E: interact()
 		if event.keycode == KEY_SPACE and player.action.is_empty(): player.jump_requested = true
 		if event.keycode == KEY_R and stage == Stage.SEED: recover()
-	if pause or transitioning or stage == Stage.TITLE: return
+	if pause or transitioning or stage == Stage.TITLE or basket_cue_clock>=0: return
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_RIGHT: orbiting = event.pressed
 		if event.button_index == MOUSE_BUTTON_LEFT and (held or carried_part != null) and player.action.is_empty():
@@ -324,7 +343,7 @@ func interact() -> void:
 		ball.collision_layer = 0
 		ball.collision_mask = 0
 		sound.chime(392)
-		if dialogue_queue.is_empty(): say("Khassek thazi limouna li 7dak otlu7iha f dwara O", 5)
+		if dialogue_queue.is_empty(): say(BASKET_INSTRUCTION, 5)
 	elif player.position.distance_to(friend.position) < 3:
 		if stage == Stage.PATH: say("Yala namchiw 3end lbab")
 		elif stage in [Stage.REVEAL, Stage.GARDEN]: say("Jibi liya lyed dyali o3tiha liya... 3afaak")
@@ -421,7 +440,7 @@ func planted() -> void:
 	player.carrying = false
 	charging = false
 	for i in range(recovery_parts.size()):
-		recovery_parts[i].emerge(world.bowl + Vector3(0, 0.1, 0), world.bowl + Vector3(0, 1.3, 0.1))
+		recovery_parts[i].emerge(world.bowl + Vector3(0, 1.6, 0), world.bowl + Vector3(-1.7, 0.85, 0.8))
 	var lines: Array[String] = ["Bravo! Makuntch 3aref rak sportif! :3" if missed_throws <= 1 else "3la slama... Bravo 3lik!", "Jibi liya lyed dyali o3tiha liya... 3afaak"]
 	say_sequence(lines)
 	sound.chime(659.25)
@@ -432,13 +451,14 @@ func _physics_process(delta: float) -> void:
 	if speech_time > 0:
 		speech_time -= delta
 		if speech_time <= 0: next_dialogue()
-	if stage != Stage.TITLE and not testing and not transitioning:
+	if stage != Stage.TITLE and not testing and not transitioning and basket_cue_clock<0:
 		var input := Vector2(
 			float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)),
 			float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
 		player.drive = Vector3(input.x, 0, input.y).rotated(Vector3.UP, yaw).limit_length()
 		player.sprint = Input.is_physical_key_pressed(KEY_SHIFT)
 	if stage == Stage.TITLE: player.drive = Vector3.ZERO
+	if basket_cue_clock>=0: player.drive = Vector3.ZERO
 	if journey.chapter == GardenJourney.Chapter.FIRST and friend.position.y < -4:
 		friend.position = player.position + Vector3(-1, 0.2, 1)
 		friend.velocity = Vector3.ZERO
@@ -470,8 +490,7 @@ func _physics_process(delta: float) -> void:
 	if journey.chapter == GardenJourney.Chapter.FIRST and stage == Stage.SEED and not held and player.action != "pickup":
 		lost_time += delta
 		if throw_in_flight: flight_time += delta
-		var near_bowl := Vector2(ball.position.x - world.bowl.x, ball.position.z - world.bowl.z).length() < 0.8
-		if throw_in_flight and near_bowl and ball.position.y > 0.2 and ball.position.y < 0.65 and ball.linear_velocity.y < 0: planted()
+		if throw_in_flight and world.basket.scored(previous_ball_position,ball.position): planted()
 		elif throw_in_flight and flight_time > 0.55 and ball.position.y < 0.36:
 			missed_throw()
 		elif ball.position.y < -4 or (lost_time > 5 and ball.position.distance_to(seed_home) > 1): recover()
@@ -489,6 +508,7 @@ func _physics_process(delta: float) -> void:
 			stage = Stage.COMPLETE
 			ball.hide()
 			journey.enter_gap()
+	previous_ball_position = ball.position
 	environment.background_color = Color.BLACK
 	if friend.follow_target != null:
 		var on_passage := world.passage_revealed and player.position.z < GardenWorld.EXIT_Z + 6 and player.position.z > GardenJourney.ENTRY_Z
@@ -509,6 +529,13 @@ func _physics_process(delta: float) -> void:
 	var offset := Vector3(0, sin(pitch) * 15.1, cos(pitch) * 15.1).rotated(Vector3.UP, yaw)
 	camera.position = camera.position.lerp(focus + offset, 1.0 - exp(-delta * 4))
 	camera.look_at(focus)
+	if basket_cue_clock>=0:
+		basket_cue_clock += delta
+		var weight := smoothstep(0,1,basket_cue_clock)*smoothstep(0,1,basket_cue_duration-basket_cue_clock)
+		var target := Transform3D(Basis.IDENTITY,world.bowl+Vector3(-3,4.5,7))
+		target = target.looking_at(world.bowl+Vector3.UP*1.4)
+		camera.transform = basket_cue_return.interpolate_with(target,weight)
+		if basket_cue_clock>=basket_cue_duration: basket_cue_clock = -1
 	if screenshot_mode.begins_with("characters"):
 		camera.position = Vector3(0, 2.9, 7.6)
 		camera.look_at(Vector3(0, 1.4, 2))
@@ -527,6 +554,21 @@ func _process(_delta: float) -> void:
 func update_hud() -> void:
 	if screenshot_mode.begins_with("characters"): return
 	if stage == Stage.TITLE: return
+	hud.interaction_hint.text = ""
+	if not transitioning and basket_cue_clock<0 and player.action.is_empty():
+		if carried_part!=null:
+			hud.interaction_hint.text = "E  •  3ti lyed l sa7bek" if carried_part.kind==&"arm" and player.position.distance_to(friend.position)<3 else "Hold click • aim   /   Release • throw"
+		elif held:
+			hud.interaction_hint.text = "Hold click • aim   /   Release • throw"
+		elif stage==Stage.SEED and player.position.distance_to(ball.position)<2:
+			hud.interaction_hint.text = "E  •  Hez limouna"
+		else:
+			for part in recovery_parts:
+				if part.state==GardenRecoveryPart.State.AVAILABLE and player.position.distance_to(part.position)<2:
+					hud.interaction_hint.text = "E  •  Hez lyed"
+			var head := journey.reunion.head
+			if head!=null and head.state==GardenRecoveryPart.State.AVAILABLE and player.position.distance_to(head.position)<2:
+				hud.interaction_hint.text = "E  •  Hez rass"
 	if friend.visible and not transitioning:
 		var speaker := friend.global_position + Vector3.UP * 2.35
 		var story := journey.reunion
@@ -582,7 +624,7 @@ func self_test() -> void:
 		interact()
 	if test_tick == 65:
 		assert(held and player.action.is_empty(), "pickup reaches carry pose")
-		player.position = Vector3(0, 0.1, 0.0)
+		player.position = world.bowl+Vector3(0,0.1,3.6)
 	if test_tick == 75:
 		power = 0
 		throw_seed()

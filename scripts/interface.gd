@@ -10,6 +10,7 @@ var title_screen := Control.new()
 var play_button: Button
 var pause_screen := Control.new()
 var objective: Label
+var interaction_hint: Label
 var dialogue: Label
 var bubble := PanelContainer.new()
 var bubble_tail := Polygon2D.new()
@@ -74,6 +75,14 @@ func _ready() -> void:
 	objective.position = Vector2(34, 30)
 	root.add_child(objective)
 	objective.hide()
+	interaction_hint = label("",20,Color.WHITE)
+	interaction_hint.add_theme_constant_override("outline_size",6)
+	interaction_hint.add_theme_color_override("font_outline_color",Color("222222"))
+	interaction_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	interaction_hint.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	interaction_hint.position = Vector2(-300,-52)
+	interaction_hint.size = Vector2(600,32)
+	root.add_child(interaction_hint)
 	dialogue = label("", 21, Color.BLACK)
 	dialogue.add_theme_color_override("font_shadow_color", Color.TRANSPARENT)
 	dialogue.add_theme_constant_override("outline_size", 0)
@@ -87,6 +96,8 @@ func _ready() -> void:
 	var bubble_style := StyleBoxFlat.new()
 	bubble_style.bg_color = Color.WHITE
 	bubble_style.set_corner_radius_all(28)
+	bubble_style.set_border_width_all(2)
+	bubble_style.border_color = Color("222222")
 	bubble_style.content_margin_left = 22
 	bubble_style.content_margin_right = 22
 	bubble_style.content_margin_top = 15
@@ -196,12 +207,19 @@ func speech(text: String) -> void:
 
 # Projected every frame so speech stays attached while the camera or speaker moves.
 func place_speech(camera: Camera3D, world_position: Vector3) -> void:
-	if dialogue.text.is_empty(): return
-	bubble.visible = not camera.is_position_behind(world_position)
+	if dialogue.text.is_empty():
+		bubble.hide()
+		return
 	var point := camera.unproject_position(world_position)
 	var viewport_size := get_viewport().get_visible_rect().size
-	bubble.visible = bubble.visible and Rect2(Vector2.ZERO, viewport_size).has_point(point)
-	bubble.position = Vector2(clampf(point.x - bubble.size.x / 2, 16, viewport_size.x - bubble.size.x - 16), maxf(16, point.y - bubble.size.y - 22))
+	var on_screen := not camera.is_position_behind(world_position) and Rect2(Vector2(24,24),viewport_size-Vector2(48,48)).has_point(point)
+	bubble.show()
+	bubble_tail.visible = on_screen
+	bubble_tail_shadow.visible = on_screen
+	if not on_screen:
+		bubble.position = Vector2((viewport_size.x-bubble.size.x)/2,maxf(16,viewport_size.y-bubble.size.y-104))
+		return
+	bubble.position = Vector2(clampf(point.x - bubble.size.x / 2, 16, viewport_size.x - bubble.size.x - 16), clampf(point.y - bubble.size.y - 22,16,maxf(16,viewport_size.y-bubble.size.y-24)))
 	bubble_tail.position = Vector2(clampf(point.x - bubble.position.x, 24, bubble.size.x - 24), bubble.size.y)
 	bubble_tail_shadow.position = bubble_tail.position+Vector2(0,8)
 

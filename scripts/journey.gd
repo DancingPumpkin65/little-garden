@@ -139,7 +139,7 @@ func enter_gap() -> void:
 func start_gap_dialogue() -> void:
 	dialogue_started = true
 	companion.celebration = 0
-	var lines: Array[String] = ["Hahiya yedi fjiha lakhra. Kighandiro nakhdoha?", "Ymkn khassna namchiw na9zo ltmak."]
+	var lines: Array[String] = ["Hahiya rjli fjiha lakhra.", "Ymkn khassna namchiw na9zo ltmak."]
 	dialogue_requested.emit(lines)
 
 func dialogue_finished() -> void:

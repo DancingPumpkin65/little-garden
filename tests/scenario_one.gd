@@ -37,7 +37,7 @@ func run() -> void:
 	game.interact()
 	await frames(60)
 	assert(game.held, "fruit picked up")
-	game.player.position = Vector3(0, 0.1, 0)
+	game.player.position = game.world.bowl+Vector3(0,0.1,3.6)
 	game.power = 0
 	game.throw_seed()
 	await frames(170)

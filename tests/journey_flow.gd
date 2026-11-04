@@ -35,8 +35,9 @@ func run() -> void:
 	var intro_seen: Array[String] = []
 	await frames(40)
 	await shot("greeting")
-	for i in range(950):
+	for i in range(2400):
 		if game.hud.dialogue.text in game.INTRO and not game.hud.dialogue.text in intro_seen: intro_seen.append(game.hud.dialogue.text)
+		if intro_seen.size()==4 and game.dialogue_queue.is_empty() and game.basket_cue_clock<0: break
 		await physics_frame
 	assert(intro_seen.size() == 4 and game.dialogue_queue.is_empty(), "all four opening lines play in order")
 	assert(game.environment.background_color == Color.BLACK and game.world.ground_material.albedo_color == Color.WHITE, "white ground and black world")
@@ -55,7 +56,7 @@ func run() -> void:
 	game.player.position = game.seed_home + Vector3(0, -0.6, 0.8)
 	game.interact()
 	await frames(60)
-	game.player.position = Vector3(0, 0.1, 0)
+	game.player.position = game.world.bowl+Vector3(0,0.1,3.6)
 	game.yaw = 0
 	game.power = 0
 	game.throw_seed()
@@ -103,7 +104,7 @@ func run() -> void:
 	await until(func(): return game.player.position.z < GardenJourney.EDGE_Z + 10)
 	game.player.drive = Vector3.ZERO
 	await frames(2)
-	assert(game.hud.dialogue.text == "Hahiya yedi fjiha lakhra. Kighandiro nakhdoha?", "exact gap opening dialogue")
+	assert(game.hud.dialogue.text == "Hahiya rjli fjiha lakhra.", "exact gap opening dialogue")
 	await frames(35)
 	await shot("gap-leg")
 	await until(func(): return game.journey.beat == GardenJourney.Beat.JUMP)
