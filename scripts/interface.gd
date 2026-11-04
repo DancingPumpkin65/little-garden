@@ -18,7 +18,7 @@ var curtain := ColorRect.new()
 var finish: Label
 var typing_clock := 0.0
 var spoken_letters := 0
-const LETTER_INTERVAL := 0.044
+const LETTER_INTERVAL := 0.070
 const SENTENCE_END := [".", "!", "?", "\u061f"]
 const CLAUSE_END := [",", ":", ";", "\u060c", "\u061b"]
 
@@ -176,18 +176,18 @@ func place_speech(camera: Camera3D, world_position: Vector3) -> void:
 # Ease into punctuation, then leave a short reading pause after it.
 func letter_delay(text: String, index: int) -> float:
 	var delay := LETTER_INTERVAL
-	for ahead in range(2):
+	for ahead in range(4):
 		if index+ahead < text.length():
 			var next := text[index+ahead]
 			if next in SENTENCE_END or next in CLAUSE_END:
-				delay *= 1.35 if ahead==0 else 1.18
+				delay *= [2.4, 1.9, 1.5, 1.2][ahead]
 				break
 	if index>0:
 		var previous := text[index-1]
 		if previous in SENTENCE_END:
-			delay += 0.07 if index<text.length() and text[index] in SENTENCE_END else 0.21
+			delay += 0.10 if index<text.length() and text[index] in SENTENCE_END else 0.38
 		elif previous in CLAUSE_END:
-			delay += 0.10
+			delay += 0.22
 	return delay
 
 func typing_duration(text: String) -> float:
