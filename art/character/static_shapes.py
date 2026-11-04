@@ -11,6 +11,7 @@ def torso(point):
     # A shallow, uneven hem reads as a little shirt rather than a capsule.
     p.y-=.045*(1-t)**2
     p.z+=.014*math.sin(t*math.pi)*(1-t)+.004*math.cos(angle*3+.7)*math.sin(t*math.pi)
+    p.z+=.055*max(0,math.sin(angle))**2*math.exp(-((t-.35)/.30)**2)
     p.y+=.005*math.sin(angle*2+.4)*math.sin(t*math.pi)
     return p
 
@@ -20,7 +21,8 @@ def body_part(name,point,index):
         row,i=divmod(index,14);a=i*math.tau/14
         sections=[(1.145,.33,.225),(1.18,.385,.25),(1.35,.38,.255),(1.54,.355,.24),(1.65,.32,.21),(1.73,.21,.155),(1.75,.10,.10)]
         h,rx,rz=sections[row]
-        return Vector((rx*math.cos(a)*(1+.012*math.sin(a*3+row)),h+.004*math.sin(a*2+row)*math.sin(row*math.pi/6),rz*math.sin(a)+.008*math.sin(row*math.pi/6)))
+        belly=.045*max(0,math.sin(a))**2*math.exp(-((h-1.35)/.20)**2)
+        return Vector((rx*math.cos(a)*(1+.012*math.sin(a*3+row)),h+.004*math.sin(a*2+row)*math.sin(row*math.pi/6),rz*math.sin(a)+.008*math.sin(row*math.pi/6)+belly))
     if name.startswith('ARM_'):
         # Rings lie perpendicular to the limb, rather than horizontal ovals.
         row,i=divmod(index,12);a=i*math.tau/12
