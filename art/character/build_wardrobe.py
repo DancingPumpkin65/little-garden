@@ -58,23 +58,24 @@ for variant in variants:
  pants=material('Charcoal loose trousers' if variant=='girl' else 'Lavender blue trousers',(.022,.026,.034) if variant=='girl' else (.34,.44,.68))
  garments=[]
  # Compact torso, soft shoulders and fuller forearms follow the supplied sweater references.
- garments.append(shell('Sweater',[( (0,y,0),rx,rz) for y,rx,rz in [(1.02,.32,.225),(1.045,.33,.235),(1.11,.335,.24),(1.31,.325,.238),(1.52,.35,.25),(1.70,.345,.245),(1.76,.29,.22),(1.79,.155,.14)]],top))
- garments.append(shell('Sweater hem',[( (0,y,0),rx,rz) for y,rx,rz in [(1.025,.325,.228),(1.05,.331,.237),(1.085,.334,.242)]],trim))
+ garments.append(shell('Sweater',[( (0,y,0),rx,rz) for y,rx,rz in [(1.02,.32,.225),(1.045,.33,.235),(1.11,.335,.26),(1.31,.35,.278),(1.52,.35,.245),(1.70,.345,.245),(1.76,.29,.22),(1.77,.135,.11)]],top))
+ garments.append(shell('Sweater hem',[( (0,y,0),rx,rz) for y,rx,rz in [(1.025,.32,.24),(1.05,.332,.255),(1.085,.34,.275)]],trim))
  garments.append(shell('Collar',[( (0,y,0),.157,.14) for y in [1.81,1.85,1.875]],trim))
  for side,label in [(-1,'L'),(1,'R')]:
   shoulder=Vector((side*.285,1.77,0));wrist=Vector((side*.70,1.075,.018));direction=(wrist-shoulder).normalized()
   cross=Vector((0,0,1));other=direction.cross(cross).normalized()
   profiles=[]
-  sleeve_profile=[(-.13,.11),(0,.16),(.15,.177),(.34,.182),(.53,.188),(.68,.185),(.82,.164),(.93,.126),(1,.112)] if variant=='girl' else [(-.13,.11),(0,.16),(.12,.18),(.29,.183),(.43,.184),(.46,.183)]
+  sleeve_profile=[(-.13,.12),(0,.18),(.15,.208),(.34,.235),(.53,.25),(.68,.242),(.82,.218),(.93,.17),(1,.128)] if variant=='girl' else [(-.13,.12),(0,.18),(.12,.205),(.29,.22),(.43,.22),(.46,.21)]
   for t,r in sleeve_profile:profiles.append((shoulder.lerp(wrist,t),r,r*.95))
   garments.append(shell('Puffed sleeve '+label,profiles,top,(other,cross)))
-  cuff_profile=[(shoulder.lerp(wrist,t),.125,.12) for t in [.94,1,1.025]] if variant=='girl' else [(shoulder.lerp(wrist,t),.184,.175) for t in [.425,.45,.47]]
+  cuff_profile=[(shoulder.lerp(wrist,t),.144,.135) for t in [.96,1,1.025]] if variant=='girl' else [(shoulder.lerp(wrist,t),.218,.207) for t in [.425,.45,.47]]
   garments.append(shell('Sleeve cuff '+label,cuff_profile,trim,(other,cross)))
   profiles=[]
-  for y,rx,rz in [(.19,.123,.135),(.26,.153,.17),(.43,.167,.19),(.61,.17,.195),(.77,.162,.19),(.94,.164,.20),(1.1,.12,.14),(1.20,.10,.10)]:
-   profiles.append(((side*(.20-(y-.19)*.020),y,0),rx,rz))
+  for y,rx,rz in [(.28,.135,.15),(.34,.18,.18),(.48,.21,.22),(.65,.208,.23),(.82,.195,.22),(.98,.18,.21),(1.13,.15,.15),(1.32,.10,.10)]:
+   t=max(0,min(1,(1.205-y)/1.025))
+   profiles.append(((side*(.20-(y-.19)*.020+.04*math.sin(t*math.pi)),y,0),rx,rz))
   garments.append(shell('Baggy trouser '+label,profiles,pants))
-  garments.append(shell('Trouser cuff '+label,[((side*.20,y,0),.132,.145) for y in [.185,.22,.26]],pants if variant=='girl' else material('Red shoe collar '+label,(.76,.10,.12))))
+  garments.append(shell('Trouser cuff '+label,[((side*.21,y,0),r,r*1.07) for y,r in [(.265,.14),(.29,.143),(.33,.15)]],pants if variant=='girl' else material('Red shoe collar '+label,(.76,.10,.12))))
  # Match the body design changes on each garment control cage before subdivision.
  def height(y):
   if y<=.18:return y*.9
@@ -88,7 +89,7 @@ for variant in variants:
     if obj.name=='Collar':point.y-=.13
    elif 'sleeve' in obj.name or 'Sleeve cuff' in obj.name:
     side=-1 if obj.name.endswith('L') else 1;t=max(0,min(1,(1.77-point.y)/.695));center=side*(.285+.415*t)
-    point.x=center+(point.x-center)*1.035+side*(.03*t+.016*math.sin(t*math.pi));point.z+=.025*math.sin(t*math.pi);point.y=height(point.y)
+    point.x=center+(point.x-center)*1.035+side*(-.07*t+.016*math.sin(t*math.pi));point.z+=.025*math.sin(t*math.pi);point.y=height(point.y)
    else:
     side=-1 if obj.name.endswith('L') else 1;t=max(0,min(1,(1.205-point.y)/1.025));center=side*(.18+.02*t)
     point.x=center+(point.x-center)*1.06+side*.012*math.sin(t*math.pi);point.z*=1.05;point.y=height(point.y)
@@ -160,7 +161,7 @@ for variant in variants:
   for face in obj.data.polygons:
    for loop in face.loop_indices:
     normal=obj.data.vertices[obj.data.loops[loop].vertex_index].normal
-    normals[loop]=(normal*.65+face.normal*.35).normalized()
+    normals[loop]=(normal*.9+face.normal*.1).normalized()
   obj.data.normals_split_custom_set(normals)
  # Hide complete covered modules, preserving the editable reusable body in this source.
  for obj in body_parts:
