@@ -61,7 +61,7 @@ var passage_joke_clock := 0.0
 var passage_joke_index := 0
 var second_passage_joke_index := 0
 var passage_dialogue_chapter := -1
-const PASSAGE_JOKES: Array[String] = ["Had lpassage twil... b7al tri9 dyalk lkhadma!", "Bla ma tjri, mazal ma 3endich permis dyal had rjel! :P"]
+const PASSAGE_JOKES: Array[String] = ["Had lpassage twil... b7al tri9 dyalk lkhadma!"]
 const SECOND_PASSAGE_JOKES: Array[String] = ["Yak ssaliti l3cha!? •ᴗ•", "Maghadich na3tik lmcha dyali! /•᷅\u200e\u200e•᷄\\੭"]
 var leg_cue_seen := false
 var previous_ball_position := Vector3.ZERO
@@ -593,18 +593,18 @@ func update_hud() -> void:
 	hud.interaction_hint.text = ""
 	if not transitioning and basket_cue_clock<0 and player.action.is_empty():
 		if carried_part!=null:
-			hud.interaction_hint.text = "E  â€¢  3ti lyed l sa7bek" if carried_part.kind==&"arm" and player.position.distance_to(friend.position)<3 else "Hold click â€¢ aim   /   Release â€¢ throw"
+			hud.interaction_hint.text = "E  •  3ti lyed l sa7bek" if carried_part.kind==&"arm" and player.position.distance_to(friend.position)<3 else "Hold click • aim   /   Release • throw"
 		elif held:
-			hud.interaction_hint.text = "Hold click â€¢ aim   /   Release â€¢ throw"
+			hud.interaction_hint.text = "Hold click • aim   /   Release • throw"
 		elif stage==Stage.SEED and player.position.distance_to(ball.position)<2:
-			hud.interaction_hint.text = "E  â€¢  Hez limouna"
+			hud.interaction_hint.text = "E  •  Hez limouna"
 		else:
 			for part in recovery_parts:
 				if part.state==GardenRecoveryPart.State.AVAILABLE and player.position.distance_to(part.position)<2:
-					hud.interaction_hint.text = "E  â€¢  Hez lyed"
+					hud.interaction_hint.text = "E  •  Hez lyed"
 			var head := journey.reunion.head
 			if head!=null and head.state==GardenRecoveryPart.State.AVAILABLE and player.position.distance_to(head.position)<2:
-				hud.interaction_hint.text = "E  â€¢  Hez rass"
+				hud.interaction_hint.text = "E  •  Hez rass"
 	if friend.visible and not transitioning:
 		var speaker := friend.global_position + Vector3.UP * 2.35
 		var story := journey.reunion
