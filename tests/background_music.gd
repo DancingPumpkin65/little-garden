@@ -14,6 +14,14 @@ func run() -> void:
  sound.music.seek(stream.get_length()-.12)
  await create_timer(.6).timeout
  assert(sound.music.playing and sound.music.get_playback_position()<2,"playback crosses song end and loops")
+ sound.glass_impact(false)
+ await create_timer(.1).timeout
+ assert(absf(sound.music.volume_db-sound.MUSIC_VOLUME_DB)<.1,"non-breaking hits keep the quiet volume")
+ sound.glass_impact(true)
+ await create_timer(1.2).timeout
+ assert(sound.music.volume_db>sound.MUSIC_VOLUME_DB and sound.music.volume_db<sound.GARDEN_MUSIC_VOLUME_DB,"garden music rises gradually")
+ await create_timer(1.5).timeout
+ assert(absf(sound.music.volume_db-sound.GARDEN_MUSIC_VOLUME_DB)<.1,"garden reaches -32 dB")
  var muted:=AudioServer.is_bus_mute(0)
  AudioServer.set_bus_mute(0,true)
  assert(sound.music.playing,"mute preserves loop position")
@@ -24,5 +32,5 @@ func run() -> void:
  assert(sound.voice.playing and sound.effects.playing and sound.player.playing,"dialogue and effects remain independent")
  sound.silence()
  assert(not sound.music.playing and sound.music.stream==null,"restart/shutdown can stop and release music")
- print("BACKGROUND_MUSIC_PASS MP3 format, full recording, fade, actual loop boundary, mute and effects")
+ print("BACKGROUND_MUSIC_PASS MP3 format, full recording, loop, quiet intro, glass-triggered garden fade, mute and effects")
  quit()

@@ -4,6 +4,14 @@ A standalone Godot 4.7.2 scene, separate from Bewerbung. Original low-poly chara
 
 Double-click **Play.cmd** to play. **Open editor.cmd** opens the project. Both use the portable runtime at `C:/Users/ouass/.local/share/godot-4.7.2`.
 
+## Windows executable
+
+The Windows release is generated at `dist/A Little Interlude.exe`. It embeds the game data and character icon, so that one file can be copied to another Windows x64 PC without installing Godot.
+
+Rebuild with `./tools/export_windows.ps1` in PowerShell. It requires Godot 4.7.2 and the matching Windows x64 export templates. Pass `-GodotExe` if the console executable is installed elsewhere. Build output stays out of Git. See [release validation](docs/reviews/windows-release/README.md).
+
+Background music starts at `MUSIC_VOLUME_DB = -42.0` in `scripts/sound.gd`. The final glass hit fades it to `GARDEN_MUSIC_VOLUME_DB = -32.0` over 2.5 seconds.
+
 ## Current playable sequence
 
 The maps and door use a black-and-white theme: white ground, a black background and a gray/white doorway. The girl keeps her hijab, glasses and flower. Her companion starts without his head, right arm or left leg, and hops ahead and to her side. Small gray dust puffs appear at moving feet.

@@ -7,7 +7,8 @@ var effects := AudioStreamPlayer.new()
 var music := AudioStreamPlayer.new()
 var music_fade: Tween
 const BACKGROUND_MUSIC := preload("res://assets/music/musicbackground.mp3")
-const MUSIC_VOLUME_DB := -32.0
+const MUSIC_VOLUME_DB := -42.0
+const GARDEN_MUSIC_VOLUME_DB := -32.0
 var syllables: Array[AudioStreamWAV] = []
 var jump_clip: AudioStreamWAV
 
@@ -26,8 +27,13 @@ func _ready() -> void:
 	(music.stream as AudioStreamMP3).loop = true
 	music.volume_db = -60
 	music.play()
+	fade_music_to(MUSIC_VOLUME_DB)
+
+func fade_music_to(volume_db: float) -> void:
+	if not music.playing: return
+	if music_fade != null: music_fade.kill()
 	music_fade = create_tween()
-	music_fade.tween_property(music,"volume_db",MUSIC_VOLUME_DB,2.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	music_fade.tween_property(music,"volume_db",volume_db,2.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 func tone(frequency: float, seconds: float, looped: bool = false) -> AudioStreamWAV:
 	var rate := 22050
@@ -99,6 +105,7 @@ func jump() -> void:
 
 # A short brittle impact grows into a longer burst on the third hit.
 func glass_impact(broken: bool) -> void:
+	if broken: fade_music_to(GARDEN_MUSIC_VOLUME_DB)
 	if DisplayServer.get_name() == "headless": return
 	var seconds := 0.65 if broken else 0.18
 	var stream := tone(1800,seconds)

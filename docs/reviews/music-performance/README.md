@@ -1,6 +1,6 @@
 # Music and performance audit
 
-The supplied song now loops at -32 dB with a 2.5-second fade-in. The file was already MP3 audio under an `.mpeg` extension; the extension is corrected without another lossy encode. Native playback tests cross the actual song-end boundary and verify looping, fade volume, mute, independent effects, and shutdown.
+The supplied song now loops at -42 dB initially, fading to -32 dB when the glass shatters and the garden appears. Both fades last 2.5 seconds. The file was already MP3 audio under an `.mpeg` extension; the extension is corrected without another lossy encode. Native playback tests cross the actual song-end boundary and verify looping, fade volume, mute, independent effects, and shutdown.
 
 ## Measurements
 
