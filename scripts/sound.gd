@@ -7,7 +7,7 @@ var effects := AudioStreamPlayer.new()
 var music := AudioStreamPlayer.new()
 var music_fade: Tween
 const BACKGROUND_MUSIC := preload("res://assets/music/musicbackground.mp3")
-const MUSIC_VOLUME_DB := -26.0
+const MUSIC_VOLUME_DB := -32.0
 var syllables: Array[AudioStreamWAV] = []
 var jump_clip: AudioStreamWAV
 
