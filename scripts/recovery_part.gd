@@ -19,6 +19,7 @@ var ground_radius := GardenWorld.MAP_RADIUS
 var ground_bounds := Rect2()
 var return_home := Vector3.ZERO
 var visual := MeshInstance3D.new()
+var highlight := Node3D.new()
 
 func setup(part: StringName, mesh: Mesh, owner_parts: GardenCompanionParts, player: GardenCharacter) -> void:
 	kind = part
@@ -26,6 +27,21 @@ func setup(part: StringName, mesh: Mesh, owner_parts: GardenCompanionParts, play
 	girl = player
 	visual.mesh = mesh
 	add_child(visual)
+	add_child(highlight)
+	if kind==&"arm":
+		var outline := MeshInstance3D.new()
+		outline.mesh = mesh
+		var ink := ShaderMaterial.new()
+		ink.shader = Shader.new()
+		ink.shader.code = "shader_type spatial; render_mode unshaded,cull_front; void vertex(){VERTEX+=NORMAL*0.025;} void fragment(){ALBEDO=vec3(0.12,0.10,0.06);}"
+		outline.material_override = ink
+		visual.add_child(outline)
+		var gold := Shapes.material(Color("e7b54a"))
+		gold.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		var ring := TorusMesh.new()
+		ring.inner_radius = .44
+		ring.outer_radius = .49
+		Shapes.mesh(highlight,ring,Vector3(0,.6,0),gold)
 	hide()
 
 func emerge(origin: Vector3, destination: Vector3) -> void:
@@ -58,6 +74,8 @@ func put_back() -> void:
 
 func _physics_process(delta: float) -> void:
 	clock += delta
+	highlight.visible = kind==&"arm" and state in [State.EMERGING,State.AVAILABLE]
+	if highlight.visible: highlight.rotation.y += delta
 	if state == State.EMERGING:
 		var progress := minf(1, clock / 1.25)
 		global_position = start.lerp(home, smoothstep(0, 1, progress)) + Vector3.UP * sin(progress * PI) * 0.65

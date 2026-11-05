@@ -31,14 +31,15 @@ func run() -> void:
 	game.testing = true
 	game.test_tick = -100000
 	game.start()
-	assert(game.hud.dialogue.text == "Salam Salma, labas?", "exact opening greeting")
+	assert(game.hud.dialogue.text == "Salam Salma, labas? :)", "exact opening greeting")
 	var intro_seen: Array[String] = []
 	await frames(40)
 	await shot("greeting")
-	for i in range(950):
+	for i in range(2400):
 		if game.hud.dialogue.text in game.INTRO and not game.hud.dialogue.text in intro_seen: intro_seen.append(game.hud.dialogue.text)
+		if intro_seen.size()==game.INTRO.size() and game.dialogue_queue.is_empty() and game.basket_cue_clock<0: break
 		await physics_frame
-	assert(intro_seen.size() == 4 and game.dialogue_queue.is_empty(), "all four opening lines play in order")
+	assert(intro_seen.size() == game.INTRO.size() and game.dialogue_queue.is_empty(), "all opening lines play in order")
 	assert(game.environment.background_color == Color.BLACK and game.world.ground_material.albedo_color == Color.WHITE, "white ground and black world")
 	game.player.drive = Vector3.FORWARD
 	await frames(100)
@@ -55,12 +56,12 @@ func run() -> void:
 	game.player.position = game.seed_home + Vector3(0, -0.6, 0.8)
 	game.interact()
 	await frames(60)
-	game.player.position = Vector3(0, 0.1, 0)
+	game.player.position = game.world.bowl+Vector3(0,0.1,3.6)
 	game.yaw = 0
 	game.power = 0
 	game.throw_seed()
 	await until(func(): return game.stage != game.Stage.SEED)
-	assert(game.hud.dialogue.text == "Bravo! Makuntch 3aref rak sportif! :3", "one/two-try success line")
+	assert(game.hud.dialogue.text == "Bravo! Makuntch 3aref rak sportif!", "one/two-try success line")
 	var part: GardenRecoveryPart = game.recovery_parts[0]
 	await until(func(): return part.state == GardenRecoveryPart.State.AVAILABLE)
 	game.player.position = Vector3(part.home.x, 0.03, part.home.z + 0.8)
@@ -77,7 +78,7 @@ func run() -> void:
 	game.player.position = game.friend.position + Vector3(0, 0, 0.8)
 	game.interact()
 	await frames(55)
-	assert(game.hud.dialogue.text == "Nice! Db khassna l9aw rjel dyali" and game.friend.celebration > 0, "restoration dialogue and celebration")
+	assert(game.hud.dialogue.text == "Nice! Db khassna l9aw rjel dyali :/" and game.friend.celebration > 0, "restoration dialogue and celebration")
 	assert(not game.world.door_open, "door waits until player approaches")
 	game.player.position = Vector3(0, 0.04, GardenWorld.EXIT_Z + 1.5)
 	await until(func(): return game.world.door_open)
@@ -90,6 +91,7 @@ func run() -> void:
 	var walked := 0
 	while game.player.position.z > GardenJourney.ENTRY_Z - 2 and walked < 4000:
 		await physics_frame
+		if game.basket_cue_clock<0:game.player.drive=Vector3.FORWARD
 		assert(game.hud.curtain.color.a == 0 and not game.transitioning, "passage remains seamless without fade or input lock")
 		assert(game.player.position.y > -0.1, "continuous floor all the way along passage")
 		walked += 1
@@ -100,12 +102,16 @@ func run() -> void:
 	assert(game.journey.entry_sealed and not game.journey.arrival_open, "arrival door closes after both characters enter new area")
 	assert(game.journey.far_platform.scale.x == 70, "wide quest platforms")
 	game.player.drive = Vector3.FORWARD
-	await until(func(): return game.player.position.z < GardenJourney.EDGE_Z + 10)
+	await until(func(): return game.journey.dialogue_started)
 	game.player.drive = Vector3.ZERO
 	await frames(2)
-	assert(game.hud.dialogue.text == "Hahiya yedi fjiha lakhra. Kighandiro nakhdoha?", "exact gap opening dialogue")
-	await frames(35)
+	assert(game.hud.dialogue.text == "Hahiya rajli fjiha lakhra °ㅁ°", "exact gap opening dialogue")
+	var original_leg_view: Transform3D = game.basket_cue_return
+	await frames(90)
+	assert(game.camera.position.distance_to(original_leg_view.origin)>1 and game.hud.bubble.visible,"leg instruction frames the leg without hiding speech")
 	await shot("gap-leg")
+	await until(func(): return game.basket_cue_clock<0)
+	assert(game.camera.position.distance_to(original_leg_view.origin)<.2,"leg camera returns to the player view")
 	await until(func(): return game.journey.beat == GardenJourney.Beat.JUMP)
 	await frames(14)
 	await shot("failed-jump")

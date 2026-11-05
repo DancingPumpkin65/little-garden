@@ -6,7 +6,8 @@ const EXIT_Z := -19.4
 const PASSAGE_LENGTH := 80.0
 const PASSAGE_WIDTH := 5.0
 const DOOR_WIDTH := 4.5
-var bowl := Vector3(0, 0, -4.5)
+var bowl := Vector3(7, 0, -2.0)
+var basket := GardenBasket.new()
 var bloom := 0.0
 var door := Node3D.new()
 var door_body: StaticBody3D
@@ -29,12 +30,8 @@ func _ready() -> void:
 	floor_body.position.y = -0.53
 	floor_body.add_child(collision)
 	add_child(floor_body)
-	var stone := Shapes.material(Color.WHITE)
-	Shapes.cylinder(self, bowl + Vector3(0, 0.028, 0), 0.94, 0.012, Shapes.material(Color("333333")))
-	var ring := TorusMesh.new()
-	ring.inner_radius = 0.86
-	ring.outer_radius = 1.08
-	Shapes.mesh(self, ring, bowl + Vector3(0, 0.04, 0), stone).scale.y = 0.12
+	add_child(basket)
+	basket.position = bowl
 	build_exit()
 
 func build_exit() -> void:

@@ -1,8 +1,16 @@
-# A little garden
+# A Little Interlude
 
 A standalone Godot 4.7.2 scene, separate from Bewerbung. Original low-poly characters inspired by the broad visual approach of Bryson McBee's birthday game. No assets from his game are used.
 
 Double-click **Play.cmd** to play. **Open editor.cmd** opens the project. Both use the portable runtime at `C:/Users/ouass/.local/share/godot-4.7.2`.
+
+## Windows executable
+
+The Windows release is generated at `dist/A Little Interlude.exe`. It embeds the game data and character icon, so that one file can be copied to another Windows x64 PC without installing Godot.
+
+Rebuild with `./tools/export_windows.ps1` in PowerShell. It requires Godot 4.7.2 and the matching Windows x64 export templates. Pass `-GodotExe` if the console executable is installed elsewhere. Build output stays out of Git. See [release validation](docs/reviews/windows-release/README.md).
+
+Background music starts at `MUSIC_VOLUME_DB = -42.0` in `scripts/sound.gd`. The final glass hit fades it to `GARDEN_MUSIC_VOLUME_DB = -32.0` over 2.5 seconds.
 
 ## Current playable sequence
 
@@ -59,7 +67,7 @@ Run these with Godot's `--headless --fixed-fps 60 --path .` flags:
 - `--quit-after 1000 --script tests/handoff_restart.gd`: stationary handoff, restored arm in the hop, and movement after restarting from pause.
 - `--quit-after 1500 --script tests/scenario_one.gd`: real throw, whole-arm reward, pickup, pause/fall recovery, restoration and door completion. Append `-- --procedural-character` for the fallback.
 - `--quit-after 1100 --script tests/hop_and_misses.gd`: hop phases, larger empty map, full-arm geometry and one rotating joke per missed physics throw.
-- `--quit-after 500 -- --self-test`: controller, timed throw, target trigger, reveal and fall recovery.
+- `--quit-after 750 -- --self-test`: entrance, controller, timed throw, target trigger, reveal and fall recovery.
 - `--quit-after 180 --script tests/fruit_attachment.gd`: hand attachment, camera orbit and throw timing.
 - `--quit-after 550 --script tests/dialogue_movement.gd`: typing, murmurs, pause, grounding, carrying control and player jump.
 - `--quit-after 60 --script tests/imported_character.gd`: both GLBs, normalized weights, rig and pose transitions.

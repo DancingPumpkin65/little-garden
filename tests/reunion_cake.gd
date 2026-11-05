@@ -82,8 +82,10 @@ func run() -> void:
 	assert(story.phase == GardenReunion.Phase.CAKE and story.introduced,"both arrive at cake map")
 	assert(door_pose_seen and story.door.opened,"companion performs reach/bow and opens door")
 	assert(story.flowers.size()==9 and story.flower_growth[4]>0.9,"only a few flowers emerge along route")
-	assert("9rabna nwasslo, mab9a walo" in seen and "Khalini n7al lik lbab ;)" in seen,"route and gentleman dialogue")
-	assert(game.hud.dialogue.text == "Khasski tharssi zaj bach takhdi lcadeau dyalk...","exact cake instruction")
+	assert("9rabna nwasslo, mab9a walo" in seen and "Khalini n7el lik lbab" in seen,"route and gentleman dialogue")
+	assert(game.hud.dialogue.text == "Salaaaaam Salma, finally kanchufek!","head greets Salma before the cake instruction")
+	await until(func(): return game.hud.dialogue.text.begins_with("Ach ban lik thazi rass"),2400)
+	assert("Happy birthdaaaaay!" in seen,"head wishes Salma a birthday before the glass instruction")
 	await frames(100)
 	await shot("glass-cake",Vector3(0,0,GardenReunion.CAKE_Z+2))
 	game.player.position = Vector3(0,0.03,GardenReunion.CAKE_Z+3)
@@ -104,7 +106,7 @@ func run() -> void:
 		game.yaw = PI/2
 		game.throw_seed()
 		await until(func(): return story.head.state == GardenRecoveryPart.State.AVAILABLE,300)
-		assert(game.hud.dialogue.text == ("Darbi zaj machi lhwa" if miss==0 else "Wa9ila ma3afach tchayeri..."),"exact ordered miss reaction")
+		assert(game.hud.dialogue.text == ("Darbi zaj machi lhwa" if miss==0 else "Wa9ila ma3arfach tchayeri..."),"exact ordered miss reaction")
 		assert(story.glass.hits==0,"missed head does not damage glass")
 	for hit in range(1,4):
 		await until(func(): return story.head.state == GardenRecoveryPart.State.AVAILABLE)
@@ -125,6 +127,7 @@ func run() -> void:
 			assert(story.glass.cracks.get_child_count()>0,"hits add visible cracks")
 			await shot("crack-"+str(hit),Vector3(0,0,GardenReunion.CAKE_Z+1))
 		else:
+			assert(story.head_reunion==GardenReunion.HeadReunion.WAIT,"third glass hit starts head reunion before dancing")
 			assert(story.glass.shards.size()==30 and not story.glass.shell.visible and story.glass.body.collision_layer==0,"third hit emits shards and removes shell")
 			await frames(12)
 			await shot("shattered",Vector3(0,0,GardenReunion.CAKE_Z+1))
@@ -143,7 +146,7 @@ func run() -> void:
 	await frames(90)
 	assert(flower.stem.get_aabb().size.y*flower.stem.scale.y>stem_height and flower.scale==Vector3.ONE,"stem grows before petals finish unfolding")
 	await until(func(): return game.hud.dialogue.text==story.BIRTHDAY_LINES[3],2400)
-	await frames(100)
+	await until(func(): return game.hud.dialogue.visible_characters>65,1200)
 	assert(game.hud.bubble.size.y>80,"long birthday line expands its panel and attached shadow")
 	await shot("birthday-long-message",game.player.position)
 	await until(func(): return game.hud.dialogue.text==story.BIRTHDAY_LINES[-1],2400)
@@ -174,8 +177,9 @@ func run() -> void:
 	await frames(160)
 	game.player.drive = Vector3.ZERO
 	assert(story.birthday.trail.size()>trail_before+3,"walking leaves a growing plant trail")
+	var planted_flower: GardenBloom = story.birthday.trail[-1]
 	await frames(150)
-	assert(story.birthday.trail[-1].progress>0.9,"trail flowers grow from stems rather than scaling whole plants")
+	assert(planted_flower.progress>0.9,"trail flowers grow from stems rather than scaling whole plants")
 	await shot("birthday-trail",game.player.position-Vector3.RIGHT*2)
 	game.player.visual.rotation.y = 0
 	game.friend.visual.rotation.y = -game.friend.rotation.y
@@ -185,12 +189,8 @@ func run() -> void:
 	game.set_physics_process(true)
 
 	assert(story.glass.shards.is_empty(),"shards clean up after animation")
-	assert(game.companion_parts.missing[&"head"],"throwing head does not incorrectly restore it")
-	story.head.state = GardenRecoveryPart.State.THROWN
-	story.head.position = Vector3(-2,2,GardenReunion.CAKE_Z-60)
-	story.head.velocity = Vector3(0,0,-3)
-	await frames(180)
-	assert(story.head.state == GardenRecoveryPart.State.AVAILABLE and story.head.home == story.head.return_home,"missed head outside map returns instead of hovering over void")
+	assert(not game.companion_parts.missing[&"head"] and story.head.state==GardenRecoveryPart.State.RESTORED,"body collects and restores its head after the glass breaks")
+	assert(game.friend.garden_roaming and story.birthday.companion==game.friend,"reunited companion roams and plants flowers")
 	game.set_pause(true)
 	game.hud.restarted.emit()
 	await frames(30)

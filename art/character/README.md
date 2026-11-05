@@ -31,3 +31,11 @@ Run `tests/imported_character.gd` to check ten body modules, the bone contract, 
 Run `tests/journey_flow.gd`, `tests/reunion_cake.gd` and the normal `--self-test` after rig or interaction changes. `tests/reunion_cake.gd -- --capture-reunion` captures the actual native game sequence. The before/after sheets under `artifacts/proportion-review/` use equal displayed character heights and matching camera angles.
 
 Study references are in the adjacent Bewerbung workspace's `game reference` folder. They are not shipping assets. Preserve the girl's hijab, glasses and flower and the guy's short hair, rectangular glasses, mustache and goatee.
+
+## Static shape refinement
+
+`static_shapes.py` edits the existing control-cage vertices for a less regular torso, fuller shoulders, uneven mitten palms, shaped lower legs and shoes with a heel and toe box. Body topology, identity meshes, bone rest transforms and gameplay animation equations remain unchanged in this pass. Garments remain independent; their torso follows the same small silhouette edits.
+
+Before editing, save the baseline body Blender files under `artifacts/final-static/baseline-reference_character.blend` and `baseline-companion_character.blend`. `validate_static_revision.py` compares the revised files against those baselines and checks exact identity and rest-rig equality, unchanged body vertex/face counts and ten independent meshes.
+
+`tests/soft_visuals.gd -- --static-only` captures imported static views without running the walking, jumping or throwing previews. Walking refinement is a separate contribution after static review. Published comparison renders are in `docs/reviews/static-character/`.

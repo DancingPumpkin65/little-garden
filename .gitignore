@@ -1,4 +1,5 @@
 .godot/
+/dist/
 artifacts/
 *.tmp
 references/*.png
@@ -9,3 +10,9 @@ references/*.png.import
 # Local Blender backup files are not source inputs.
 *.blend1
 art/character/*_pre_soft.blend
+
+__pycache__/
+*.pyc
+
+# Review screenshots are documentation, not game resources.
+docs/**/*.import

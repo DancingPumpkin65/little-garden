@@ -2,6 +2,9 @@ class_name GardenBirthday
 extends Node3D
 var trail: Array[GardenBloom] = []
 var last_step := Vector3.INF
+var companion: GardenCharacter
+var companion_last_step := Vector3.INF
+var companion_trail_count := 0
 var ground_plants: MultiMeshInstance3D
 var plant_material: ShaderMaterial
 var perimeter: Node3D
@@ -140,27 +143,31 @@ func build_perimeter() -> void:
 
 # Distance sampling prevents stationary or airborne spawning; the oldest flowers recycle.
 func grow_trail() -> void:
-	var here := walker.global_position
-	if not walker.is_on_floor():
-		last_step = here
-		return
-	if not last_step.is_finite(): last_step = here
-	if here.distance_to(last_step)<0.85: return
-	var direction := (here-last_step).normalized()
-	last_step = here
+	last_step = grow_trail_for(walker,last_step)
+	if is_instance_valid(companion): companion_last_step = grow_trail_for(companion,companion_last_step)
+
+func grow_trail_for(actor: GardenCharacter, previous: Vector3) -> Vector3:
+	var here := actor.global_position
+	if not actor.is_on_floor() or not previous.is_finite(): return here
+	if here.distance_to(previous)<0.85: return previous
+	var direction := (here-previous).normalized()
 	var behind := here-direction*0.7
-	if absf(behind.x-center.x)>45 or absf(behind.z-center.z)>38: return
+	if absf(behind.x-center.x)>45 or absf(behind.z-center.z)>38: return here
 	if trail.size()>=180:
 		var old := trail.pop_front() as GardenBloom
 		old.queue_free()
 	var flower := GardenBloom.new()
 	flower.position = behind+Vector3(random.randf_range(-0.22,0.22),0.02,random.randf_range(-0.22,0.22))
 	flower.height = random.randf_range(0.28,0.65)
-	flower.kind = trail.size()%3
+	flower.kind = [0,1,0,2,4,0,3,5][trail.size()%8]
+	if flower.kind==3: flower.height = random.randf_range(1.1,1.65)
+	elif flower.kind>=4: flower.height = random.randf_range(0.7,1.0)
 	flower.color = [Color("fff2aa"),Color("f6b9d3"),Color("c5b4ed"),Color.WHITE][trail.size()%4]
 	add_child(flower)
 	flower.start()
 	trail.append(flower)
+	if actor==companion: companion_trail_count+=1
+	return here
 
 func build_ground_plants() -> void:
 	var surface := SurfaceTool.new()

@@ -1,0 +1,98 @@
+{
+	"garden_build_ms": 64.659,
+	"renderer": "AMD Radeon(TM) Graphics",
+	"resolution": "(1280, 800)",
+	"results": [
+		{
+			"draw_calls": 34.0,
+			"max_ms": 1.9,
+			"nodes": 350.0,
+			"p50_ms": 0.81,
+			"p95_ms": 1.49,
+			"primitives": 15700.0,
+			"scene": "title",
+			"static_mb": 60.4,
+			"video_mb": 119.9
+		},
+		{
+			"draw_calls": 429.0,
+			"max_ms": 7.73,
+			"nodes": 350.0,
+			"p50_ms": 3.71,
+			"p95_ms": 6.14,
+			"primitives": 150782.977777778,
+			"scene": "first-stage",
+			"static_mb": 61.3,
+			"video_mb": 120.0
+		},
+		{
+			"draw_calls": 64.8777777777778,
+			"max_ms": 4.96,
+			"nodes": 354.0,
+			"p50_ms": 1.64,
+			"p95_ms": 3.28,
+			"primitives": 12019.3222222222,
+			"scene": "passage",
+			"static_mb": 61.3,
+			"video_mb": 120.0
+		},
+		{
+			"draw_calls": 75.6777777777778,
+			"max_ms": 4.93,
+			"nodes": 369.0,
+			"p50_ms": 1.56,
+			"p95_ms": 3.14,
+			"primitives": 13570.1555555556,
+			"scene": "gap",
+			"static_mb": 73.5,
+			"video_mb": 120.0
+		},
+		{
+			"draw_calls": 200.0,
+			"max_ms": 8.36,
+			"nodes": 487.0,
+			"p50_ms": 2.9,
+			"p95_ms": 4.36,
+			"primitives": 99164.9333333333,
+			"scene": "glass",
+			"static_mb": 74.2,
+			"video_mb": 120.6
+		},
+		{
+			"draw_calls": 284.461111111111,
+			"max_ms": 155.46,
+			"nodes": 957.0,
+			"p50_ms": 8.55,
+			"p95_ms": 18.48,
+			"primitives": 1123220.15555556,
+			"scene": "garden-growing",
+			"static_mb": 77.5,
+			"video_mb": 123.1
+		},
+		{
+			"draw_calls": 1116.0,
+			"max_ms": 77.19,
+			"nodes": 6487.0,
+			"p50_ms": 9.51,
+			"p95_ms": 18.1,
+			"primitives": 1339618.0,
+			"scene": "garden-grown",
+			"static_mb": 96.4,
+			"video_mb": 123.2
+		},
+		{
+			"draw_calls": 2912.0,
+			"max_ms": 54.0,
+			"nodes": 13417.0,
+			"p50_ms": 12.49,
+			"p95_ms": 22.62,
+			"primitives": 1740626.0,
+			"scene": "garden-max-trail",
+			"static_mb": 124.2,
+			"video_mb": 123.3
+		}
+	],
+	"startup_ms": 456.86,
+	"tag": "final-1280-r3",
+	"vsync": false
+}

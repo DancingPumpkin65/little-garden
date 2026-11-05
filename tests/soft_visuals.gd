@@ -17,7 +17,7 @@ func run() -> void:
  game.ball.hide()
  game.hud.hide()
  game.environment.background_color = Color("363e43")
- game.environment.ambient_light_energy = 0.75
+ game.environment.ambient_light_energy = 0.32
  for part in [&"head",&"arm",&"leg"]: game.companion_parts.restore(part)
  for actor: GardenCharacter in [game.player,game.friend]:
   actor.set_physics_process(false)
@@ -49,9 +49,15 @@ func run() -> void:
        var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
        assert(cloth.skin.get_bind_name(bones[vertex*stride+slot])==&"body","hands and thighs cannot drag the sweater torso")
      assert(absf(total-1)<0.001 and vertices[vertex].is_finite(),"new garment weights and geometry remain valid")
+ await create_timer(1.0).timeout
  await shot("outfit-front")
  await shot("outfit-back",Vector3(0,1.4,0),Vector3(0,0,-8))
  await shot("outfit-side",Vector3(0,1.4,0),Vector3(8,0,1))
+ if "--static-only" in OS.get_cmdline_user_args():
+  print("STATIC_RENDER_PASS independent body and garment modules, normalized weights, matching static views")
+  game.sound.silence()
+  quit()
+  return
  for actor: GardenCharacter in [game.player,game.friend]:
   actor.gait = PI*1.5
   actor.animate_pose(1,1,true)
