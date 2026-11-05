@@ -59,7 +59,10 @@ var camera_cue_lemon := Transform3D.IDENTITY
 var showing_basket_tour := false
 var passage_joke_clock := 0.0
 var passage_joke_index := 0
-const PASSAGE_JOKES: Array[String] = ["Had lpassage twil... wach ghadi ldar wla l9amar? (¬_¬)", "Bla ma tjri, mazal ma 3endich permis dyal had rjel! :P", "Had lbab akhor? Wa hadi dar wla escape room? (¬_¬)", "Ila tl3at chi drja, ghankhellik tsbe9ini :P"]
+var second_passage_joke_index := 0
+var passage_dialogue_chapter := -1
+const PASSAGE_JOKES: Array[String] = ["Had lpassage twil... b7al tri9 dyalk lkhadma!", "Bla ma tjri, mazal ma 3endich permis dyal had rjel! :P"]
+const SECOND_PASSAGE_JOKES: Array[String] = ["Yak ssaliti l3cha!? •ᴗ•", "Maghadich na3tik lmcha dyali! /•᷅\u200e\u200e•᷄\\੭"]
 var leg_cue_seen := false
 var previous_ball_position := Vector3.ZERO
 const INTRO: Array[String] = [
@@ -71,7 +74,7 @@ const INTRO: Array[String] = [
 const MISS_JOKES: Array[String] = [
 	"Zgaltiha... Yakma ydik kaydarouk? (¬_¬)",
 	"3awtani majbtihach :/ wa9ila fik n3ass...",
-	"Ma3lich had lmara tjibiha, \"TALTA TABTA\" (˶ᵔᵕᵔ˶)",
+	"Ma3lich had lmara tjibiha, \"TALTA TABTA\" (•̀ᴗ•́)و",
 	"Salma Ez Zyry... (¬_¬)",
 	"-_-"
 ]
@@ -312,7 +315,7 @@ func request_first_door() -> void:
 	friend.waiting_for_arm = false
 	friend.directed_move = true
 	friend.move_target = Vector3(1.7,0.02,GardenWorld.EXIT_Z+1.2)
-	say("Khalini n7al lik lbab ;)",4)
+	say("Khalini n7el lik lbab ৻( •̀ ᗜ •́ ৻)",4)
 
 func update_first_door(delta: float) -> void:
 	if not first_door_pending: return
@@ -362,7 +365,7 @@ func interact() -> void:
 		ball.collision_mask = 0
 		sound.chime(392)
 	elif player.position.distance_to(friend.position) < 3:
-		if stage == Stage.PATH: say("Yala namchiw 3end lbab (˶ᵔᵕᵔ˶)")
+		if stage == Stage.PATH: say("Yala namchiw 3end lbab ٩(ˊᗜˋ*)و")
 		elif stage in [Stage.REVEAL, Stage.GARDEN]: say("Jibi liya lyed dyali o3tiha liya... 3afaak (╥﹏╥)")
 		else: say_sequence(INTRO)
 
@@ -371,7 +374,7 @@ func part_returned(_kind: StringName) -> void:
 	sound.chime(783.99)
 	stage = Stage.PATH
 	friend.celebration = 3.5
-	var lines: Array[String] = ["Nice! Db khassna l9aw rjel dyali (˶ᵔᵕᵔ˶)", "Yala namchiw 3end lbab (˶ᵔᵕᵔ˶)"]
+	var lines: Array[String] = ["Nice! Db khassna l9aw rjel dyali (ง •̀_•́)ง", "Yala namchiw 3end lbab ٩(ˊᗜˋ*)و"]
 	say_sequence(lines)
 
 func forward() -> Vector3:
@@ -458,7 +461,7 @@ func planted() -> void:
 	charging = false
 	for i in range(recovery_parts.size()):
 		recovery_parts[i].emerge(world.bowl + Vector3(0, 1.6, 0), world.bowl + Vector3(-1.7, 0.85, 0.8))
-	var lines: Array[String] = ["Bravo! Makuntch 3aref rak sportif! :3" if missed_throws <= 1 else "3la slama... Bravo 3lik! (˶ᵔᵕᵔ˶)", "Jibi liya lyed dyali o3tiha liya... 3afaak (╥﹏╥)"]
+	var lines: Array[String] = ["Bravo! Makuntch 3aref rak sportif! :3" if missed_throws <= 1 else "3la slama... Bravo 3lik! \\o/", "Jibi liya lyed dyali o3tiha liya... 3afaak (╥﹏╥)"]
 	say_sequence(lines)
 	sound.chime(659.25)
 
@@ -560,12 +563,20 @@ func _physics_process(delta: float) -> void:
 	update_hud()
 	update_aim()
 	var in_passage := (world.passage_revealed and journey.chapter==GardenJourney.Chapter.FIRST and player.position.z<GardenWorld.EXIT_Z-5) or (journey.chapter==GardenJourney.Chapter.DARK and journey.reunion.phase==GardenReunion.Phase.PASSAGE)
-	if in_passage and speech_time<=0 and dialogue_queue.is_empty():
-		passage_joke_clock += delta
-		if passage_joke_clock>7 and passage_joke_index<PASSAGE_JOKES.size():
-			say(PASSAGE_JOKES[passage_joke_index])
-			passage_joke_index+=1
-			passage_joke_clock=0
+	if in_passage:
+		if passage_dialogue_chapter != journey.chapter:
+			passage_dialogue_chapter = journey.chapter
+			passage_joke_clock = 0
+		if speech_time<=0 and dialogue_queue.is_empty():
+			passage_joke_clock += delta
+			var second := journey.chapter == GardenJourney.Chapter.DARK
+			var lines := SECOND_PASSAGE_JOKES if second else PASSAGE_JOKES
+			var index := second_passage_joke_index if second else passage_joke_index
+			if passage_joke_clock>3 and index<lines.size():
+				say(lines[index])
+				if second: second_passage_joke_index += 1
+				else: passage_joke_index += 1
+				passage_joke_clock = 0
 	if testing: self_test()
 	if not screenshot_mode.is_empty() and not capturing and elapsed > 1.5:
 		capturing = true

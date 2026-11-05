@@ -50,7 +50,8 @@ func run() -> void:
  game.speech_time=0
  game.world.reveal_passage()
  game.player.position=Vector3(0,.02,GardenWorld.EXIT_Z-7)
- game.passage_joke_clock=6.9
+ game.passage_dialogue_chapter=GardenJourney.Chapter.FIRST
+ game.passage_joke_clock=2.9
  for i in range(20): await physics_frame
  assert(game.hud.dialogue.text==game.PASSAGE_JOKES[0],"quiet passage triggers a joke")
  for i in range(240): await physics_frame

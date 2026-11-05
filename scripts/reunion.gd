@@ -43,16 +43,15 @@ var garden_comment_wait := 18.0
 var last_garden_line := ""
 const GARDEN_COMMENTS: Array[String] = [
 	"Chufi! Fin kandouz kaytla3 lward :3",
-	"Wa had jerda katzid tzian bik! (˶ᵔᵕᵔ˶)",
-	"Salma, had nhar dyalk. Khodi ra7tek :)",
-	"Kan9elleb 3la chi blassa zwina ntsawro fiha :P"
+	"Wa had jerda katzid tzian bik! (✿◠‿◠)",
+	"Salma, had nhar dyalk. Khodi ra7tek :)"
 ]
 const HIT_LINES: Array[String] = ["Aaaay, kunt 3arfek bghiti darbini mn ch7al hadi... (>﹏<)", "Salmaaaaa ghatharssi rassi huwa lwal... :')", "WEEEEEEEEEEEE!!! (ദ്ദി˙ᗜ˙)"]
 const BIRTHDAY_LINES: Array[String] = [
-	"Happy birthday!!! (˶ᵔᵕᵔ˶)",
-	"Raki kbarti oweliti wa7ed l2inssana wa3ra (˶ᵔᵕᵔ˶)",
+	"Happy birthday!!! (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧",
+	"Raki kbarti oweliti wa7ed l2inssana wa3ra (•̀ᴗ•́)و",
 	"Kima kabrat had jerda, tantiya kberti o ba9i ghatkabri... :')",
-	"Knatmana lik kul khir, odkhel 3lik sna jdida bachma tmaniti inchallah! (˶ᵔᵕᵔ˶)",
+	"Knatmana lik kul khir, odkhel 3lik sna jdida bachma tmaniti inchallah! ♡",
 	"Tmachay fjarda tchufiha kidayra :3"
 ]
 var root: Node3D
@@ -213,13 +212,13 @@ func _physics_process(delta: float) -> void:
 		lead_to(Vector3(1.3,0.02,DOOR_Z+4))
 		if guy.position.z < -30 and not near_line:
 			near_line = true
-			var lines: Array[String] = ["9rabna nwasslo, mab9a walo (˶ᵔᵕᵔ˶)"]
+			var lines: Array[String] = ["9rabna nwasslo, mab9a walo ٩(ˊᗜˋ*)و"]
 			dialogue_requested.emit(lines)
 		if guy.position.distance_to(Vector3(1.3,0.02,DOOR_Z+4))<0.7 and girl.position.z < DOOR_Z+9:
 			phase = Phase.DOOR
 			clock = 0
 			guy.move_target = Vector3(1.1,0.02,DOOR_Z+1.2)
-			var lines: Array[String] = ["Khalini n7al lik lbab ;)"]
+			var lines: Array[String] = ["Khalini n7el lik lbab ৻( •̀ ᗜ •́ ৻)"]
 			dialogue_requested.emit(lines)
 	elif phase == Phase.DOOR:
 		guy.waiting_for_arm = false
@@ -244,7 +243,7 @@ func _physics_process(delta: float) -> void:
 		if not introduced and girl.position.distance_to(Vector3(0,0,CAKE_Z))<10:
 			introduced = true
 			speech_from_head = true
-			var lines: Array[String] = ["Salaaaaam Salma, finally kanchufek! (˶ᵔᵕᵔ˶)", "Happy birthdaaaaay! :D", "Khasski tharssi zaj bach takhdi lcadeau dyalk... (˶ᵔᵕᵔ˶)", "Ach ban lik thazi rass dyali otharssi bih zaj... (¬_¬)"]
+			var lines: Array[String] = ["Salaaaaam Salma, finally kanchufek! (≧▽≦)", "Happy birthdaaaaay! :D", "Khasski tharssi zaj bach takhdi lcadeau dyalk... (¬‿¬)", "Ach ban lik thazi rass dyali otharssi bih zaj... (¬_¬)"]
 			dialogue_requested.emit(lines)
 
 	elif phase == Phase.BIRTHDAY:
