@@ -50,7 +50,14 @@ var transitioning := false
 var journey := GardenJourney.new()
 var dust := GardenDust.new()
 var friend_dust := GardenDust.new()
-const BASKET_INSTRUCTION := "Khassek thazi limouna li 7dak otlu7iha f sela O"
+const LEMON_INSTRUCTION := "Khassek thazi limouna li 7dak"
+const BASKET_INSTRUCTION := "O tlu7iha f ssela O"
+var entrance_clock := -1.0
+const ENTRANCE_DURATION := 2.4
+var entrance_from := Transform3D.IDENTITY
+var entrance_to := Transform3D.IDENTITY
+var lemon_cue_seen := false
+var camera_cue_hold := false
 var basket_cue_seen := false
 var basket_cue_clock := -1.0
 var basket_cue_duration := 0.0
@@ -70,6 +77,7 @@ const INTRO: Array[String] = [
 	"Salam Salma, labas? :)",
 	"3arfek yala jaya men lkhadma, 3iyana o darek rassek o darak kerchek okulchi...",
 	"M7tajek t3awnini l9a body parts dyawli :)",
+	LEMON_INSTRUCTION,
 	BASKET_INSTRUCTION
 ]
 const MISS_JOKES: Array[String] = [
@@ -223,6 +231,11 @@ func start() -> void:
 	hud.title_screen.hide()
 	if not testing and screenshot_mode.is_empty(): Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	friend.follow_target = player if not screenshot_mode.begins_with("characters") else null
+	var focus := player.position + Vector3(0,0.7,-1)
+	entrance_to = Transform3D(Basis.IDENTITY,focus+Vector3(0,sin(pitch)*FOLLOW_DISTANCE,cos(pitch)*FOLLOW_DISTANCE)).looking_at(focus)
+	entrance_from = Transform3D(Basis.IDENTITY,focus+Vector3(0,26,0.8)).looking_at(focus)
+	entrance_clock = 0
+	camera.transform = entrance_from
 	say_sequence(INTRO)
 
 func set_transition_locked(value: bool) -> void:
@@ -255,20 +268,22 @@ func next_dialogue() -> void:
 	hud.speech(line)
 	speech_time = hud.typing_duration(line) + DIALOGUE_READ_PAUSE
 	var show_basket := line==BASKET_INSTRUCTION and not basket_cue_seen
+	var show_lemon := line==LEMON_INSTRUCTION and not lemon_cue_seen
 	var show_leg := line==GardenJourney.LEG_REVEAL_LINE and not leg_cue_seen
-	if show_basket or show_leg:
+	if show_basket or show_lemon or show_leg:
+		var continue_tour := show_basket and showing_basket_tour
 		if show_basket: basket_cue_seen = true
+		elif show_lemon: lemon_cue_seen = true
 		else: leg_cue_seen = true
-		var subject := world.bowl+Vector3.UP*1.4 if show_basket else journey.leg.global_position+Vector3.UP*.4
-		var offset := Vector3(-3,3.1,7) if show_basket else Vector3(5,3,9)
+		var subject := ball.global_position if show_lemon else world.bowl+Vector3.UP*1.4 if show_basket else journey.leg.global_position+Vector3.UP*.4
+		var offset := Vector3(-2,2,4) if show_lemon else Vector3(-3,3.1,7) if show_basket else Vector3(5,3,9)
 		camera_cue_target = Transform3D(Basis.IDENTITY,subject+offset).looking_at(subject)
-		showing_basket_tour = show_basket
-		if show_basket:
-			var lemon := ball.global_position
-			camera_cue_lemon = Transform3D(Basis.IDENTITY,lemon+Vector3(-2,2,4)).looking_at(lemon)
+		showing_basket_tour = show_lemon or show_basket
+		camera_cue_hold = show_lemon
+		if show_lemon: camera_cue_lemon = camera_cue_target
 		basket_cue_clock = 0
 		basket_cue_duration = speech_time
-		basket_cue_return = camera.transform
+		if not continue_tour: basket_cue_return = camera.transform
 		charging = false
 		orbiting = false
 		player.drive = Vector3.ZERO
@@ -285,11 +300,11 @@ func set_pause(value: bool) -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE and stage != Stage.TITLE and not transitioning: set_pause(not pause)
-		if pause or transitioning or stage == Stage.TITLE or basket_cue_clock>=0: return
+		if pause or transitioning or stage == Stage.TITLE or basket_cue_clock>=0 or entrance_clock>=0: return
 		if event.keycode == KEY_E: interact()
 		if event.keycode == KEY_SPACE and player.action.is_empty(): player.jump_requested = true
 		if event.keycode == KEY_R and stage == Stage.SEED: recover()
-	if pause or transitioning or stage == Stage.TITLE or basket_cue_clock>=0: return
+	if pause or transitioning or stage == Stage.TITLE or basket_cue_clock>=0 or entrance_clock>=0: return
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_RIGHT: orbiting = event.pressed
 		if event.button_index == MOUSE_BUTTON_LEFT and (held or carried_part != null) and player.action.is_empty():
@@ -471,14 +486,14 @@ func _physics_process(delta: float) -> void:
 	if speech_time > 0:
 		speech_time -= delta
 		if speech_time <= 0: next_dialogue()
-	if stage != Stage.TITLE and not testing and not transitioning and basket_cue_clock<0:
+	if stage != Stage.TITLE and not testing and not transitioning and basket_cue_clock<0 and entrance_clock<0:
 		var input := Vector2(
 			float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)),
 			float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
 		player.drive = Vector3(input.x, 0, input.y).rotated(Vector3.UP, yaw).limit_length()
 		player.sprint = Input.is_physical_key_pressed(KEY_SHIFT)
 	if stage == Stage.TITLE: player.drive = Vector3.ZERO
-	if basket_cue_clock>=0: player.drive = Vector3.ZERO
+	if basket_cue_clock>=0 or entrance_clock>=0: player.drive = Vector3.ZERO
 	if journey.chapter == GardenJourney.Chapter.FIRST and friend.position.y < -4:
 		friend.position = player.position + Vector3(-1, 0.2, 1)
 		friend.velocity = Vector3.ZERO
@@ -524,7 +539,7 @@ func _physics_process(delta: float) -> void:
 		if stage == Stage.PATH and player.position.distance_to(Vector3(0, 0, GardenWorld.EXIT_Z)) < 5:
 			request_first_door()
 		update_first_door(delta)
-		if stage == Stage.PATH and world.door_open and player.position.z < GardenJourney.ENTRY_Z and absf(player.position.x) < GardenWorld.PASSAGE_WIDTH / 2:
+		if stage == Stage.PATH and world.door_open and player.position.z < GardenJourney.ENTRY_Z-2 and absf(player.position.x) < GardenWorld.PASSAGE_WIDTH / 2:
 			stage = Stage.COMPLETE
 			ball.hide()
 			journey.enter_gap()
@@ -548,14 +563,15 @@ func _physics_process(delta: float) -> void:
 	var offset := Vector3(0, sin(pitch) * FOLLOW_DISTANCE, cos(pitch) * FOLLOW_DISTANCE).rotated(Vector3.UP, yaw)
 	camera.position = camera.position.lerp(focus + offset, 1.0 - exp(-delta * 4))
 	camera.look_at(focus)
+	if entrance_clock>=0:
+		entrance_clock += delta
+		camera.transform = entrance_from.interpolate_with(entrance_to,smoothstep(0,ENTRANCE_DURATION,entrance_clock))
+		if entrance_clock>=ENTRANCE_DURATION: entrance_clock = -1
 	if basket_cue_clock>=0:
 		basket_cue_clock += delta
-		var weight := smoothstep(0,1,basket_cue_clock)*smoothstep(0,1,basket_cue_duration-basket_cue_clock)
-		var tour_target := camera_cue_target
-		if showing_basket_tour:
-			var swap := smoothstep(basket_cue_duration*.30,basket_cue_duration*.52,basket_cue_clock)
-			tour_target = camera_cue_lemon.interpolate_with(camera_cue_target,swap)
-		camera.transform = basket_cue_return.interpolate_with(tour_target,weight)
+		var cue_from := camera_cue_lemon if showing_basket_tour and not camera_cue_hold and lemon_cue_seen else basket_cue_return
+		var cue := cue_from.interpolate_with(camera_cue_target,smoothstep(0,1,basket_cue_clock))
+		camera.transform = cue if camera_cue_hold else basket_cue_return.interpolate_with(cue,smoothstep(0,1,basket_cue_duration-basket_cue_clock))
 		if basket_cue_clock>=basket_cue_duration: basket_cue_clock = -1
 	if screenshot_mode.begins_with("characters"):
 		camera.position = Vector3(0, 2.9, 7.6)
@@ -650,6 +666,7 @@ func capture(view: String) -> void:
 
 # Runs the actual controller and rigid-body simulation, without a renderer.
 func self_test() -> void:
+	if entrance_clock>=0: return
 	test_tick += 1
 	if test_tick == 1: player.drive = Vector3.RIGHT
 	if test_tick == 10:

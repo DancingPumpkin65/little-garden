@@ -4,7 +4,7 @@ extends TextureRect
 # Dialogue stays plain text; sticker filenames never enter the typewriter or voice sounds.
 const ASSIGNMENTS: Dictionary[String, String] = {
 	"3arfek yala jaya men lkhadma, 3iyana o darek rassek o darak kerchek okulchi...": "myhead",
-	"Khassek thazi limouna li 7dak otlu7iha f sela O": "ok",
+	"O tlu7iha f ssela O": "ok",
 	"3awtani majbtihach :/ wa9ila fik n3ass...": "overworked",
 	"Ma3lich had lmara tjibiha, \"TALTA TABTA\"": "hihi",
 	"Salma Ez Zyry...": "hem",

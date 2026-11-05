@@ -7,7 +7,8 @@ Conditional lines are listed beside the event that triggers them. Repeated inter
 - Salam Salma, labas? :)
 - 3arfek yala jaya men lkhadma, 3iyana o darek rassek o darak kerchek okulchi... [myhead.webp]
 - M7tajek t3awnini l9a body parts dyawli :)
-- Khassek thazi limouna li 7dak otlu7iha f sela O [ok.webp]
+- Khassek thazi limouna li 7dak
+- O tlu7iha f ssela O [ok.webp]
 
 ## Missed lemon throws, in order
 

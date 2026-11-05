@@ -15,14 +15,14 @@ func run() -> void:
  game.testing=true
  game.test_tick=-10000
  game.start()
- await frames(12)
+ await frames(160)
  var basket: GardenBasket=game.world.basket
  var at: Vector3=game.world.bowl
  assert(at.x>5,"basket is on the right")
  assert(basket.scored(at+Vector3(0,2,0),at+Vector3(0,1,0)),"downward crossing scores")
  assert(not basket.scored(at+Vector3(0,1,0),at+Vector3(0,2,0)),"upward crossing cannot score")
  assert(not basket.scored(at+Vector3(1.5,2,0),at+Vector3(1.5,1,0)),"wide miss cannot score")
- game.dialogue_queue.assign([game.BASKET_INSTRUCTION])
+ game.dialogue_queue.assign([game.LEMON_INSTRUCTION,game.BASKET_INSTRUCTION])
  game.next_dialogue()
  var original: Transform3D=game.camera.transform
  await frames(90)
@@ -30,7 +30,10 @@ func run() -> void:
  assert(game.camera.position.distance_to(game.camera_cue_lemon.origin)<.3,"tutorial visits the lemon first")
  assert(game.hud.bubble.visible,"instruction stays visible away from its speaker")
  await shot("lemon-instruction")
- await frames(maxi(1,int(game.basket_cue_duration*.65*60)-90))
+ for i in range(1200):
+  if game.hud.dialogue.text==game.BASKET_INSTRUCTION:break
+  await physics_frame
+ await frames(90)
  assert(game.camera.position.distance_to(game.camera_cue_target.origin)<.3,"tutorial visits basket after lemon")
  await shot("basket-instruction")
  for i in range(1200):

@@ -59,7 +59,7 @@ Run these with Godot's `--headless --fixed-fps 60 --path .` flags:
 - `--quit-after 1000 --script tests/handoff_restart.gd`: stationary handoff, restored arm in the hop, and movement after restarting from pause.
 - `--quit-after 1500 --script tests/scenario_one.gd`: real throw, whole-arm reward, pickup, pause/fall recovery, restoration and door completion. Append `-- --procedural-character` for the fallback.
 - `--quit-after 1100 --script tests/hop_and_misses.gd`: hop phases, larger empty map, full-arm geometry and one rotating joke per missed physics throw.
-- `--quit-after 500 -- --self-test`: controller, timed throw, target trigger, reveal and fall recovery.
+- `--quit-after 750 -- --self-test`: entrance, controller, timed throw, target trigger, reveal and fall recovery.
 - `--quit-after 180 --script tests/fruit_attachment.gd`: hand attachment, camera orbit and throw timing.
 - `--quit-after 550 --script tests/dialogue_movement.gd`: typing, murmurs, pause, grounding, carrying control and player jump.
 - `--quit-after 60 --script tests/imported_character.gd`: both GLBs, normalized weights, rig and pose transitions.

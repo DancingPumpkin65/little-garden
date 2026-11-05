@@ -37,9 +37,9 @@ func run() -> void:
 	await shot("greeting")
 	for i in range(2400):
 		if game.hud.dialogue.text in game.INTRO and not game.hud.dialogue.text in intro_seen: intro_seen.append(game.hud.dialogue.text)
-		if intro_seen.size()==4 and game.dialogue_queue.is_empty() and game.basket_cue_clock<0: break
+		if intro_seen.size()==game.INTRO.size() and game.dialogue_queue.is_empty() and game.basket_cue_clock<0: break
 		await physics_frame
-	assert(intro_seen.size() == 4 and game.dialogue_queue.is_empty(), "all four opening lines play in order")
+	assert(intro_seen.size() == game.INTRO.size() and game.dialogue_queue.is_empty(), "all opening lines play in order")
 	assert(game.environment.background_color == Color.BLACK and game.world.ground_material.albedo_color == Color.WHITE, "white ground and black world")
 	game.player.drive = Vector3.FORWARD
 	await frames(100)
@@ -91,6 +91,7 @@ func run() -> void:
 	var walked := 0
 	while game.player.position.z > GardenJourney.ENTRY_Z - 2 and walked < 4000:
 		await physics_frame
+		if game.basket_cue_clock<0:game.player.drive=Vector3.FORWARD
 		assert(game.hud.curtain.color.a == 0 and not game.transitioning, "passage remains seamless without fade or input lock")
 		assert(game.player.position.y > -0.1, "continuous floor all the way along passage")
 		walked += 1

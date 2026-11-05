@@ -4,7 +4,7 @@ extends Node3D
 signal dialogue_requested(lines: Array[String])
 signal transition_lock(locked: bool)
 enum Chapter { FIRST, GAP, DESCENT, DARK }
-enum Beat { INTRO, RUN, JUMP, FALLEN }
+enum Beat { INTRO, RUN, TAKEOFF, JUMP, FALLEN }
 const ENTRY_Z := GardenWorld.EXIT_Z - GardenWorld.PASSAGE_LENGTH
 const EDGE_Z := ENTRY_Z - 48.0
 const FAR_Z := EDGE_Z - 40.0
@@ -111,7 +111,8 @@ func build_arrival_gate() -> void:
 func update_passage(delta: float) -> void:
 	original_world.passage_material.set_shader_parameter("walker", player.global_position)
 	quest_material.set_shader_parameter("walker", player.global_position)
-	far_material.set_shader_parameter("walker", player.global_position)
+	var reveal_focus := camera.global_position if chapter==Chapter.GAP and beat==Beat.INTRO and dialogue_started else player.global_position
+	far_material.set_shader_parameter("walker", reveal_focus)
 	if not entry_sealed:
 		var approaching := player.position.z < ENTRY_Z + 26
 		arrival_gate.visible = approaching
@@ -136,6 +137,7 @@ func enter_gap() -> void:
 	chapter = Chapter.GAP
 	beat = Beat.INTRO
 	clock = 0
+	start_gap_dialogue()
 
 func start_gap_dialogue() -> void:
 	dialogue_started = true
@@ -148,6 +150,9 @@ func dialogue_finished() -> void:
 	if chapter == Chapter.GAP and beat == Beat.INTRO and dialogue_started:
 		companion.follow_target = null
 		companion.set_physics_process(false)
+		companion.directed_move = true
+		companion.hop = GardenCharacter.Hop.REST
+		companion.hop_clock = 0
 		beat = Beat.RUN
 		clock = 0
 
@@ -172,6 +177,7 @@ func enter_dark() -> void:
 	companion.hop = GardenCharacter.Hop.REST
 	companion.hop_clock = 0
 	companion.follow_target = player
+	companion.directed_move = false
 	companion.follow_offset = Vector3(2, 0, -3)
 	companion.show()
 	companion.set_physics_process(true)
@@ -193,21 +199,27 @@ func _physics_process(delta: float) -> void:
 		leg.position = Vector3(-1.4 + sin(clock * 1.5) * 0.65, 0.66 + absf(sin(clock * 4)) * 0.55, FAR_Z + 5 + cos(clock) * 0.4)
 		leg.rotation.z = sin(clock * 4) * 0.15
 	if chapter == Chapter.GAP:
-		if not dialogue_started and player.position.z < EDGE_Z + 12:
-			start_gap_dialogue()
 		if beat == Beat.RUN:
-			companion.velocity = Vector3(0, -0.5, -3.8)
-			companion.move_and_slide()
-			companion.visual.rotation.y = PI
-			companion.gait += delta * 8
-			companion.animate_pose(delta, 1.0, true)
-			if companion.position.z < EDGE_Z + 1:
+			companion.move_target = Vector3(companion.position.x,0.02,companion.position.z-1.7)
+			companion.update_companion_hop(delta)
+			if companion.position.z < EDGE_Z + 3 and companion.is_on_floor():
+				beat = Beat.TAKEOFF
+				clock = 0
+				companion.velocity = Vector3.ZERO
+				companion.hop = GardenCharacter.Hop.CROUCH
+		elif beat == Beat.TAKEOFF:
+			companion.hop_clock = minf(clock,0.16)
+			companion.pose_single_leg_hop(delta)
+			if clock>=0.24:
 				beat = Beat.JUMP
+				companion.hop = GardenCharacter.Hop.AIR
+				companion.hop_clock = 0
 				companion.velocity = Vector3(0, 5.4, -5)
 		elif beat == Beat.JUMP:
+			companion.hop_clock += delta
 			companion.velocity.y -= delta * 18
 			companion.move_and_slide()
-			companion.animate_pose(delta, 0.0, false)
+			companion.pose_single_leg_hop(delta)
 			if companion.position.y < -6:
 				companion.hide()
 				beat = Beat.FALLEN

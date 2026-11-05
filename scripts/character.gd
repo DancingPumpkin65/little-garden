@@ -254,6 +254,10 @@ func update_companion_hop(delta: float) -> void:
 		hop = Hop.REST
 		hop_clock = 0
 	if moving: visual.rotation.y = lerp_angle(visual.rotation.y, atan2(offset.x, offset.z)-global_rotation.y, delta * 7)
+	pose_single_leg_hop(delta)
+
+# Shared by ordinary one-leg hops and the scripted failed leap across the gap.
+func pose_single_leg_hop(delta: float) -> void:
 	animate_pose(delta, 0.0, true)
 	var bend := 0.0
 	if hop == Hop.CROUCH: bend = smoothstep(0, 0.16, hop_clock)
