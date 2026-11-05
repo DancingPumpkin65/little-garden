@@ -3,6 +3,7 @@ extends Node3D
 enum Stage { TITLE, SEED, REVEAL, GARDEN, PATH, COMPLETE }
 const ACTION_DURATION := 0.7
 const THROW_RELEASE := 0.4
+const DIALOGUE_READ_PAUSE := 3.0
 var stage := Stage.TITLE
 var world := GardenWorld.new()
 var player := GardenCharacter.new()
@@ -239,7 +240,7 @@ func set_transition_locked(value: bool) -> void:
 func say(text: String, seconds: float = 4.0) -> void:
 	dialogue_queue.clear()
 	hud.speech(text)
-	speech_time = maxf(seconds, hud.typing_duration(text) + 2.0)
+	speech_time = maxf(seconds, hud.typing_duration(text) + DIALOGUE_READ_PAUSE)
 
 func say_sequence(lines: Array[String]) -> void:
 	dialogue_queue = lines.duplicate()
@@ -252,7 +253,7 @@ func next_dialogue() -> void:
 		return
 	var line := dialogue_queue.pop_front() as String
 	hud.speech(line)
-	speech_time = maxf(3.0, hud.typing_duration(line) + 1.7)
+	speech_time = hud.typing_duration(line) + DIALOGUE_READ_PAUSE
 	var show_basket := line==BASKET_INSTRUCTION and not basket_cue_seen
 	var show_leg := line==GardenJourney.LEG_REVEAL_LINE and not leg_cue_seen
 	if show_basket or show_leg:
@@ -349,7 +350,6 @@ func interact() -> void:
 		if part.state == GardenRecoveryPart.State.AVAILABLE and player.global_position.distance_to(part.global_position) < 2:
 			pickup_part(part)
 			friend.waiting_for_arm = true
-			say("Jibi liya lyed dyali o3tiha liya... 3afaak", 5)
 			return
 	if stage == Stage.PATH and player.position.distance_to(Vector3(0, 0, GardenWorld.EXIT_Z)) < 2.2:
 		request_first_door()

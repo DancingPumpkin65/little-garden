@@ -16,6 +16,23 @@ func run() -> void:
  game.interact()
  assert(game.hud.dialogue.visible_characters==12 and game.hud.typing_clock==.03,"picking lemon cannot restart the instruction")
  print("LEMON_PICKUP_PASS instruction is not repeated or reset")
+ game.player.action=""
+ game.held=false
+ game.player.carrying=false
+ game.stage=game.Stage.GARDEN
+ var arm=game.recovery_parts[0]
+ arm.state=GardenRecoveryPart.State.AVAILABLE
+ arm.position=game.player.position
+ game.hud.speech("Jibi liya lyed dyali o3tiha liya... 3afaak")
+ game.hud.dialogue.visible_characters=12
+ game.hud.typing_clock=.03
+ var pending: Array[String]=["Next line"]
+ game.dialogue_queue=pending.duplicate()
+ game.interact()
+ assert(game.carried_part==arm,"arm was picked up")
+ assert(game.hud.dialogue.visible_characters==12 and game.hud.typing_clock==.03 and game.dialogue_queue==pending,"arm pickup cannot replay dialogue or clear its queue")
+ print("ARM_PICKUP_PASS instruction and queue stay intact")
+ game.carried_part=null
  game.hud.hide()
  game.world.hide()
  game.ball.hide()
