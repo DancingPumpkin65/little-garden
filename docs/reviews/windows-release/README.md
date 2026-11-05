@@ -15,4 +15,3 @@ The exported executable launched successfully both with a native renderer and in
 SHA-256 of this build: `4378D666F803184275A92291568DB0E6AE286B1805AA61AE3C5658DC01C79B57`.
 
 Rebuild using `tools/export_windows.ps1`. Regenerate the icon with `Godot --path . --script tools/render_icon.gd`, then `python tools/build_icon.py`, then export again. The icon composition script requires Pillow. This build uses Godot 4.7.2's built-in Windows resource editor, so no separate icon-editing executable is needed.
-
