@@ -2,7 +2,6 @@ class_name GardenSound
 extends Node
 
 var player := AudioStreamPlayer.new()
-var hum := AudioStreamPlayer.new()
 var voice := AudioStreamPlayer.new()
 var effects := AudioStreamPlayer.new()
 var syllables: Array[AudioStreamWAV] = []
@@ -10,7 +9,6 @@ var jump_clip: AudioStreamWAV
 
 func _ready() -> void:
 	add_child(player)
-	add_child(hum)
 	add_child(voice)
 	add_child(effects)
 	if DisplayServer.get_name() == "headless": return
@@ -19,10 +17,6 @@ func _ready() -> void:
 	for frequency in [135, 148, 161, 174, 187]: syllables.append(voice_tone(frequency))
 	jump_clip = jump_tone()
 	player.volume_db = -14
-	hum.volume_db = -29
-	var stream := tone(196, 4.0, true)
-	hum.stream = stream
-	hum.play()
 
 func tone(frequency: float, seconds: float, looped: bool = false) -> AudioStreamWAV:
 	var rate := 22050
@@ -49,15 +43,13 @@ func chime(frequency: float = 523.25) -> void:
 
 func silence() -> void:
 	player.stop()
-	hum.stop()
 	voice.stop()
 	effects.stop()
 	voice.stream = null
 	effects.stream = null
 	player.stream = null
-	hum.stream = null
 
-# Short voiced syllables vary by letter without interrupting the ambient/chime players.
+# Short voiced syllables vary by letter without interrupting chimes.
 func voice_tone(frequency: float) -> AudioStreamWAV:
 	var stream := tone(frequency, 0.075)
 	var data := stream.data
