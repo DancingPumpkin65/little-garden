@@ -65,11 +65,11 @@ func run() -> void:
  story.ambient_enabled=true
  story.garden_comment_wait=0
  story.update_garden_comments(.016)
- assert(game.hud.dialogue.text=="Had lwarda zwina b7al Salma! :P","flower comment requires a flower nearby")
+ assert(game.hud.dialogue.text=="Had lwarda zwina b7al Salma! :3","flower comment requires a flower nearby")
  assert(game.friend.garden_pause_remaining>0,"companion pauses to admire flower")
  story.garden_comment_wait=0
  story.update_garden_comments(.016)
- assert(game.hud.dialogue.text!="Had lwarda zwina b7al Salma! :P","ambient comments do not repeat consecutively")
+ assert(game.hud.dialogue.text!="Had lwarda zwina b7al Salma! :3","ambient comments do not repeat consecutively")
  print("GARDEN_SOUL_PASS head reunion, speech anchor, visible roaming, companion flowers and flower comment")
  game.sound.silence()
  quit()

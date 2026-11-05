@@ -12,6 +12,7 @@ var pause_screen := Control.new()
 var objective: Label
 var interaction_hint: Label
 var dialogue: Label
+var sticker := GardenDialogueSticker.new()
 var bubble := Panel.new()
 var bubble_tail := Polygon2D.new()
 var bubble_tail_shadow := Polygon2D.new()
@@ -114,6 +115,10 @@ func _ready() -> void:
 	bubble.add_theme_stylebox_override("panel", bubble_style)
 	bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bubble.add_child(dialogue)
+	sticker.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	sticker.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	sticker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bubble.add_child(sticker)
 	root.add_child(bubble)
 	bubble_tail.polygon = PackedVector2Array([Vector2(-10, -2), Vector2(10, -2), Vector2(0, 14)])
 	bubble_tail_shadow.polygon = bubble_tail.polygon
@@ -194,6 +199,7 @@ func _ready() -> void:
 
 func speech(text: String) -> void:
 	dialogue.text = text.trim_prefix("Ari: ")
+	sticker.set_line(dialogue.text)
 	dialogue.text_direction = Control.TEXT_DIRECTION_AUTO
 	dialogue.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	dialogue.visible_characters = 0
@@ -212,11 +218,22 @@ func update_speech_size() -> void:
 	dialogue.size = Vector2(width,font.get_multiline_string_size(dialogue.text,HORIZONTAL_ALIGNMENT_LEFT,width,font_size).y)
 	var height := font.get_height(font_size)
 	var count := dialogue.text.length() if dialogue.visible_characters<0 else dialogue.visible_characters
+	var last_bounds := Rect2()
 	for index in range(count-1,-1,-1):
 		var bounds := dialogue.get_character_bounds(index)
 		if bounds.has_area():
+			last_bounds = bounds
 			height = maxf(height,ceilf(bounds.end.y))
 			break
+	sticker.visible = sticker.clip != null and count >= dialogue.text.length()
+	if sticker.visible:
+		var side := ceilf(font.get_height(font_size)*1.3)
+		sticker.size = Vector2.ONE*side
+		var origin := Vector2(last_bounds.end.x+8,maxf(0,last_bounds.position.y-4))
+		if origin.x+side > width:
+			origin = Vector2(0,height+4)
+		sticker.position = dialogue.position+origin
+		height = maxf(height,origin.y+side)
 	bubble.custom_minimum_size = Vector2(width,height)+Vector2(44,33)
 	bubble.size = bubble.custom_minimum_size
 	bubble.reset_size()
@@ -263,6 +280,7 @@ func typing_duration(text: String) -> float:
 
 func _process(delta: float) -> void:
 	if not dialogue.text.is_empty(): update_speech_size()
+	sticker.advance(delta)
 	if get_tree().paused or dialogue.visible_characters < 0 or dialogue.visible_characters >= dialogue.text.length(): return
 	typing_clock += delta
 	while dialogue.visible_characters < dialogue.text.length() and typing_clock >= letter_delay(dialogue.text,dialogue.visible_characters):

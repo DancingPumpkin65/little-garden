@@ -18,7 +18,7 @@ func run() -> void:
  game.player.position=Vector3(0,.02,game.journey.reunion.DOOR_Z-10)
  game.friend.position=game.player.position+Vector3(1,0,-2)
  for i in range(20): await physics_frame
- assert(game.hud.dialogue.text=="Yak ssaliti l3cha!? •ᴗ•","second passage must speak even after first passage jokes are exhausted")
+ assert(game.hud.dialogue.text=="Yak ssaliti l3cha!?","second passage must speak even after first passage jokes are exhausted")
  game.speech_time=0
  game.dialogue_queue.clear()
  game.passage_joke_clock=2.9

@@ -13,7 +13,7 @@ func run() -> void:
  root.add_child(hud)
  hud.title_screen.hide()
  hud.set_process(false)
- hud.speech("3arfek yala jaya men lkhadma, 3iyana o darek rassek o darak kerchek okulchi... :(")
+ hud.speech("3arfek yala jaya men lkhadma, 3iyana o darek rassek o darak kerchek okulchi...")
  await process_frame
  hud.update_speech_size()
  var first_height := hud.bubble.size.y
@@ -28,7 +28,7 @@ func run() -> void:
    await shot(hud,"line-"+str(line_growth+1))
   previous_height=hud.bubble.size.y
  assert(line_growth>=2 and first_height<hud.bubble.size.y,"bubble grows only as later lines are revealed")
- hud.speech("WEEEEEEEEEEEE!!! (ദ്ദി˙ᗜ˙)")
+ hud.speech("WEEEEEEEEEEEE!!!")
  hud.dialogue.visible_characters=-1
  hud.update_speech_size()
  await shot(hud,"reaction")

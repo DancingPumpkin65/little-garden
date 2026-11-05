@@ -49,7 +49,7 @@ var transitioning := false
 var journey := GardenJourney.new()
 var dust := GardenDust.new()
 var friend_dust := GardenDust.new()
-const BASKET_INSTRUCTION := "Khassek thazi limouna li 7dak otlu7iha f sela O (•̀ᴗ•́)و"
+const BASKET_INSTRUCTION := "Khassek thazi limouna li 7dak otlu7iha f sela O"
 var basket_cue_seen := false
 var basket_cue_clock := -1.0
 var basket_cue_duration := 0.0
@@ -62,21 +62,21 @@ var passage_joke_index := 0
 var second_passage_joke_index := 0
 var passage_dialogue_chapter := -1
 const PASSAGE_JOKES: Array[String] = ["Had lpassage twil... b7al tri9 dyalk lkhadma!"]
-const SECOND_PASSAGE_JOKES: Array[String] = ["Yak ssaliti l3cha!? •ᴗ•", "Maghadich na3tik lmcha dyali! /•᷅\u200e\u200e•᷄\\੭"]
+const SECOND_PASSAGE_JOKES: Array[String] = ["Yak ssaliti l3cha!?", "Maghadich na3tik lmcha dyali... wa9ila /•᷅\u200e\u200e•᷄\\੭"]
 var leg_cue_seen := false
 var previous_ball_position := Vector3.ZERO
 const INTRO: Array[String] = [
-	"Salam Salma, labas? (˶ᵔᵕᵔ˶)",
-	"3arfek yala jaya men lkhadma, 3iyana o darek rassek o darak kerchek okulchi... :(",
+	"Salam Salma, labas? :)",
+	"3arfek yala jaya men lkhadma, 3iyana o darek rassek o darak kerchek okulchi...",
 	"M7tajek t3awnini l9a body parts dyawli :)",
 	BASKET_INSTRUCTION
 ]
 const MISS_JOKES: Array[String] = [
-	"Zgaltiha... Yakma ydik kaydarouk? (¬_¬)",
+	"Zgaltiha... Yakma ydik kaydarouk? ¬_¬",
 	"3awtani majbtihach :/ wa9ila fik n3ass...",
-	"Ma3lich had lmara tjibiha, \"TALTA TABTA\" (•̀ᴗ•́)و",
-	"Salma Ez Zyry... (¬_¬)",
-	"-_-"
+	"Ma3lich had lmara tjibiha, \"TALTA TABTA\"",
+	"Salma Ez Zyry...",
+	"B9iiiina hnaya"
 ]
 var seed_home := Vector3(-1.4, 0.7, 3.7)
 
@@ -315,7 +315,7 @@ func request_first_door() -> void:
 	friend.waiting_for_arm = false
 	friend.directed_move = true
 	friend.move_target = Vector3(1.7,0.02,GardenWorld.EXIT_Z+1.2)
-	say("Khalini n7el lik lbab ৻( •̀ ᗜ •́ ৻)",4)
+	say("Khalini n7el lik lbab",4)
 
 func update_first_door(delta: float) -> void:
 	if not first_door_pending: return
@@ -349,7 +349,7 @@ func interact() -> void:
 		if part.state == GardenRecoveryPart.State.AVAILABLE and player.global_position.distance_to(part.global_position) < 2:
 			pickup_part(part)
 			friend.waiting_for_arm = true
-			say("Jibi liya lyed dyali o3tiha liya... 3afaak (╥﹏╥)", 5)
+			say("Jibi liya lyed dyali o3tiha liya... 3afaak", 5)
 			return
 	if stage == Stage.PATH and player.position.distance_to(Vector3(0, 0, GardenWorld.EXIT_Z)) < 2.2:
 		request_first_door()
@@ -365,8 +365,8 @@ func interact() -> void:
 		ball.collision_mask = 0
 		sound.chime(392)
 	elif player.position.distance_to(friend.position) < 3:
-		if stage == Stage.PATH: say("Yala namchiw 3end lbab ٩(ˊᗜˋ*)و")
-		elif stage in [Stage.REVEAL, Stage.GARDEN]: say("Jibi liya lyed dyali o3tiha liya... 3afaak (╥﹏╥)")
+		if stage == Stage.PATH: say("Yala namchiw 3end lbab")
+		elif stage in [Stage.REVEAL, Stage.GARDEN]: say("Jibi liya lyed dyali o3tiha liya... 3afaak")
 		else: say_sequence(INTRO)
 
 func part_returned(_kind: StringName) -> void:
@@ -374,7 +374,7 @@ func part_returned(_kind: StringName) -> void:
 	sound.chime(783.99)
 	stage = Stage.PATH
 	friend.celebration = 3.5
-	var lines: Array[String] = ["Nice! Db khassna l9aw rjel dyali (ง •̀_•́)ง", "Yala namchiw 3end lbab ٩(ˊᗜˋ*)و"]
+	var lines: Array[String] = ["Nice! Db khassna l9aw rjel dyali :/", "Yala namchiw 3end lbab"]
 	say_sequence(lines)
 
 func forward() -> Vector3:
@@ -461,7 +461,7 @@ func planted() -> void:
 	charging = false
 	for i in range(recovery_parts.size()):
 		recovery_parts[i].emerge(world.bowl + Vector3(0, 1.6, 0), world.bowl + Vector3(-1.7, 0.85, 0.8))
-	var lines: Array[String] = ["Bravo! Makuntch 3aref rak sportif! :3" if missed_throws <= 1 else "3la slama... Bravo 3lik! \\o/", "Jibi liya lyed dyali o3tiha liya... 3afaak (╥﹏╥)"]
+	var lines: Array[String] = ["Bravo! Makuntch 3aref rak sportif!" if missed_throws <= 1 else "3la slama... Bravo 3lik!", "Jibi liya lyed dyali o3tiha liya... 3afaak"]
 	say_sequence(lines)
 	sound.chime(659.25)
 

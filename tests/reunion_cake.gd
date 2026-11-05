@@ -82,10 +82,10 @@ func run() -> void:
 	assert(story.phase == GardenReunion.Phase.CAKE and story.introduced,"both arrive at cake map")
 	assert(door_pose_seen and story.door.opened,"companion performs reach/bow and opens door")
 	assert(story.flowers.size()==9 and story.flower_growth[4]>0.9,"only a few flowers emerge along route")
-	assert("9rabna nwasslo, mab9a walo ٩(ˊᗜˋ*)و" in seen and "Khalini n7el lik lbab ৻( •̀ ᗜ •́ ৻)" in seen,"route and gentleman dialogue")
-	assert(game.hud.dialogue.text == "Salaaaaam Salma, finally kanchufek! (≧▽≦)","head greets Salma before the cake instruction")
+	assert("9rabna nwasslo, mab9a walo" in seen and "Khalini n7el lik lbab" in seen,"route and gentleman dialogue")
+	assert(game.hud.dialogue.text == "Salaaaaam Salma, finally kanchufek!","head greets Salma before the cake instruction")
 	await until(func(): return game.hud.dialogue.text.begins_with("Ach ban lik thazi rass"),2400)
-	assert("Happy birthdaaaaay! :D" in seen,"head wishes Salma a birthday before the glass instruction")
+	assert("Happy birthdaaaaay!" in seen,"head wishes Salma a birthday before the glass instruction")
 	await frames(100)
 	await shot("glass-cake",Vector3(0,0,GardenReunion.CAKE_Z+2))
 	game.player.position = Vector3(0,0.03,GardenReunion.CAKE_Z+3)
@@ -106,7 +106,7 @@ func run() -> void:
 		game.yaw = PI/2
 		game.throw_seed()
 		await until(func(): return story.head.state == GardenRecoveryPart.State.AVAILABLE,300)
-		assert(game.hud.dialogue.text == ("Darbi zaj machi lhwa (¬_¬)" if miss==0 else "Wa9ila ma3afach tchayeri... (╥﹏╥)"),"exact ordered miss reaction")
+		assert(game.hud.dialogue.text == ("Darbi zaj machi lhwa" if miss==0 else "Wa9ila ma3arfach tchayeri..."),"exact ordered miss reaction")
 		assert(story.glass.hits==0,"missed head does not damage glass")
 	for hit in range(1,4):
 		await until(func(): return story.head.state == GardenRecoveryPart.State.AVAILABLE)

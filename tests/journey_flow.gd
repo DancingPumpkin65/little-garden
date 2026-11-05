@@ -31,7 +31,7 @@ func run() -> void:
 	game.testing = true
 	game.test_tick = -100000
 	game.start()
-	assert(game.hud.dialogue.text == "Salam Salma, labas? (˶ᵔᵕᵔ˶)", "exact opening greeting")
+	assert(game.hud.dialogue.text == "Salam Salma, labas? :)", "exact opening greeting")
 	var intro_seen: Array[String] = []
 	await frames(40)
 	await shot("greeting")
@@ -51,7 +51,7 @@ func run() -> void:
 		game.throw_in_flight = true
 		game.missed_throw()
 		assert(game.hud.dialogue.text == game.MISS_JOKES[i], "exact ordered miss line")
-	assert(game.MISS_JOKES[2] == 'Ma3lich had lmara tjibiha, "TALTA TABTA" (˶ᵔᵕᵔ˶)', "quote is preserved")
+	assert(game.MISS_JOKES[2] == 'Ma3lich had lmara tjibiha, "TALTA TABTA"', "quote is preserved")
 	game.missed_throws = 0
 	game.player.position = game.seed_home + Vector3(0, -0.6, 0.8)
 	game.interact()
@@ -61,7 +61,7 @@ func run() -> void:
 	game.power = 0
 	game.throw_seed()
 	await until(func(): return game.stage != game.Stage.SEED)
-	assert(game.hud.dialogue.text == "Bravo! Makuntch 3aref rak sportif! :3", "one/two-try success line")
+	assert(game.hud.dialogue.text == "Bravo! Makuntch 3aref rak sportif!", "one/two-try success line")
 	var part: GardenRecoveryPart = game.recovery_parts[0]
 	await until(func(): return part.state == GardenRecoveryPart.State.AVAILABLE)
 	game.player.position = Vector3(part.home.x, 0.03, part.home.z + 0.8)
@@ -78,7 +78,7 @@ func run() -> void:
 	game.player.position = game.friend.position + Vector3(0, 0, 0.8)
 	game.interact()
 	await frames(55)
-	assert(game.hud.dialogue.text == "Nice! Db khassna l9aw rjel dyali (˶ᵔᵕᵔ˶)" and game.friend.celebration > 0, "restoration dialogue and celebration")
+	assert(game.hud.dialogue.text == "Nice! Db khassna l9aw rjel dyali :/" and game.friend.celebration > 0, "restoration dialogue and celebration")
 	assert(not game.world.door_open, "door waits until player approaches")
 	game.player.position = Vector3(0, 0.04, GardenWorld.EXIT_Z + 1.5)
 	await until(func(): return game.world.door_open)
@@ -104,7 +104,7 @@ func run() -> void:
 	await until(func(): return game.journey.dialogue_started)
 	game.player.drive = Vector3.ZERO
 	await frames(2)
-	assert(game.hud.dialogue.text == "Hahiya rajli fjiha lakhra (˶°ㅁ°)", "exact gap opening dialogue")
+	assert(game.hud.dialogue.text == "Hahiya rajli fjiha lakhra °ㅁ°", "exact gap opening dialogue")
 	var original_leg_view: Transform3D = game.basket_cue_return
 	await frames(90)
 	assert(game.camera.position.distance_to(original_leg_view.origin)>1 and game.hud.bubble.visible,"leg instruction frames the leg without hiding speech")

@@ -6,7 +6,7 @@ func run() -> void:
 	hud.speech("Salam")
 	await process_frame
 	var short_size := hud.bubble.size
-	hud.speech("Kima kabrat had jerda, tantiya kberti o ba9i ghatkabri... :') Knatmana lik kul khir, odkhel 3lik sna jdida bachma tmaniti inchallah!")
+	hud.speech("Kima kabrat had jerda, tantiya kberti o ba9i ghatkabri... Knatmana lik kul khir, odkhel 3lik sna jdida bachma tmaniti inchallah!")
 	await process_frame
 	var long_size := hud.bubble.size
 	print("BUBBLE_DIMENSIONS short=",short_size," long=",long_size," label=",hud.dialogue.size)

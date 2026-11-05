@@ -54,7 +54,7 @@ func run() -> void:
  game.camera.look_at(at+Vector3(-.6,1,0))
  var arm: GardenRecoveryPart=game.recovery_parts[0]
  assert(arm.state==GardenRecoveryPart.State.AVAILABLE and arm.highlight.visible,"available arm has a beacon")
- game.hud.speech("Jibi liya lyed dyali o3tiha liya... 3afaak (╥﹏╥)")
+ game.hud.speech("Jibi liya lyed dyali o3tiha liya... 3afaak")
  game.hud.dialogue.visible_characters=-1
  game.update_hud()
  await shot("highlighted-arm")
