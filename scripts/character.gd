@@ -14,6 +14,9 @@ var directed_move := false
 var move_target := Vector3.ZERO
 var door_gesture := 0.0
 var birthday_outfit := false
+@export var outfit_transition_duration := 0.9
+var outfit_reveal_progress := 0.0
+var outfit_original_overrides: Dictionary[MeshInstance3D,Array] = {}
 var follow_target: Node3D
 @export_group("Birthday companion")
 @export var garden_walk_speed := 3.4
@@ -424,6 +427,10 @@ func put_on_birthday_outfit() -> void:
 	var wardrobe := Node3D.new()
 	wardrobe.name = "Birthday clothing"
 	model_root.add_child(wardrobe)
+	var reveal := create_tween()
+	var appearing_materials: Array[ShaderMaterial] = []
+	var retiring_materials: Array[ShaderMaterial] = []
+	var retiring: Array[MeshInstance3D] = []
 	for child: MeshInstance3D in source.find_children("*","MeshInstance3D",true,false):
 		if child.skin==null: continue
 		var garment := MeshInstance3D.new()
@@ -433,12 +440,15 @@ func put_on_birthday_outfit() -> void:
 		wardrobe.add_child(garment)
 		garment.transform = source.global_transform.affine_inverse()*child.global_transform
 		garment.skeleton = garment.get_path_to(imported_skeleton)
+		appearing_materials.append_array(prepare_outfit_fade(garment,true))
 	source.free()
 	# Remove only covered body triangles. Face, mittens, shoes and identity accessories stay.
 	for child: MeshInstance3D in model_root.find_children("*","MeshInstance3D",true,false):
 		if child.skin==null or wardrobe.is_ancestor_of(child): continue
 		if child.name in [&"TORSO",&"ARM_LEFT",&"ARM_RIGHT",&"LEG_LEFT",&"LEG_RIGHT",&"FOOT_LEFT",&"FOOT_RIGHT"]:
-			child.hide()
+			if child.visible:
+				retiring.append(child)
+				retiring_materials.append_array(prepare_outfit_fade(child,false))
 			continue
 		var covered := ArrayMesh.new()
 		for surface in range(child.mesh.get_surface_count()):
@@ -465,3 +475,35 @@ func put_on_birthday_outfit() -> void:
 			covered.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
 			covered.surface_set_material(covered.get_surface_count()-1,child.mesh.surface_get_material(surface))
 		child.mesh = covered
+
+	reveal.tween_method(func(progress: float):
+		outfit_reveal_progress = progress
+		for material in appearing_materials: material.set_shader_parameter("reveal",progress)
+		for material in retiring_materials: material.set_shader_parameter("reveal",progress)
+	,0.0,1.0,outfit_transition_duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	reveal.tween_callback(func():
+		for mesh in outfit_original_overrides:
+			for surface in range(mesh.mesh.get_surface_count()):
+				mesh.set_surface_override_material(surface,outfit_original_overrides[mesh][surface])
+		outfit_original_overrides.clear()
+		for body in retiring:
+			body.hide()
+	)
+
+# Complementary opaque dithering avoids see-through limbs during the outfit change.
+func prepare_outfit_fade(mesh: MeshInstance3D, incoming: bool) -> Array[ShaderMaterial]:
+	var materials: Array[ShaderMaterial] = []
+	var originals: Array = []
+	for surface in range(mesh.mesh.get_surface_count()):
+		originals.append(mesh.get_surface_override_material(surface))
+		var original := mesh.get_active_material(surface) as BaseMaterial3D
+		if original==null: continue
+		var material := ShaderMaterial.new()
+		material.shader = preload("res://shaders/outfit_reveal.gdshader")
+		material.set_shader_parameter("cloth_color",original.albedo_color)
+		material.set_shader_parameter("incoming",incoming)
+		material.set_shader_parameter("reveal",0.0)
+		mesh.set_surface_override_material(surface,material)
+		materials.append(material)
+	outfit_original_overrides[mesh] = originals
+	return materials

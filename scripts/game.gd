@@ -361,7 +361,6 @@ func interact() -> void:
 		ball.collision_layer = 0
 		ball.collision_mask = 0
 		sound.chime(392)
-		if dialogue_queue.is_empty(): say(BASKET_INSTRUCTION, 5)
 	elif player.position.distance_to(friend.position) < 3:
 		if stage == Stage.PATH: say("Yala namchiw 3end lbab (˶ᵔᵕᵔ˶)")
 		elif stage in [Stage.REVEAL, Stage.GARDEN]: say("Jibi liya lyed dyali o3tiha liya... 3afaak (╥﹏╥)")

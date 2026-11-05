@@ -12,15 +12,6 @@ def material(name,color):
  bs=m.node_tree.nodes.get('Principled BSDF');bs.inputs['Base Color'].default_value=(*color,1);bs.inputs['Roughness'].default_value=1
  return m
 
-def striped_knit():
- m=material('Pastel lilac and blue striped knit',(1,1,1))
- image=bpy.data.images.new('Pastel sweater bands',width=8,height=64)
- colors=[(.67,.81,.88,1),(.77,.65,.80,1)]
- image.pixels=[channel for y in range(64) for x in range(8) for channel in colors[0 if y<32 else 1]]
- image.pack()
- texture=m.node_tree.nodes.new('ShaderNodeTexImage');texture.image=image;texture.interpolation='Linear';texture.extension='REPEAT'
- m.node_tree.links.new(texture.outputs['Color'],m.node_tree.nodes.get('Principled BSDF').inputs['Base Color'])
- return m
 def shell(name,profiles,mat,axis=None):
  verts=[];faces=[];N=12
  for row,(center,rx,rz) in enumerate(profiles):
@@ -53,8 +44,8 @@ for variant in variants:
  required=['HEAD','TORSO','ARM_LEFT','ARM_RIGHT','HAND_LEFT','HAND_RIGHT','LEG_LEFT','LEG_RIGHT','FOOT_LEFT','FOOT_RIGHT']
  assert all(bpy.data.objects.get(name) is not None for name in required), 'Verify ten independent body objects before adding garments'
  body_parts=[bpy.data.objects[name] for name in required if name!='HEAD']
- top=striped_knit() if variant=='girl' else material('Sunflower yellow cotton',(.88,.60,.075))
- trim=material('Soft knitted cuffs',(.48,.61,.73) if variant=='girl' else (.80,.50,.05))
+ top=material('Cyan cotton knit',(.15,.72,.80)) if variant=='girl' else material('Sunflower yellow cotton',(.88,.60,.075))
+ trim=material('Soft knitted cuffs',(.15,.72,.80) if variant=='girl' else (.80,.50,.05))
  pants=material('Charcoal loose trousers' if variant=='girl' else 'Lavender blue trousers',(.022,.026,.034) if variant=='girl' else (.34,.44,.68))
  garments=[]
  # Compact torso, soft shoulders and fuller forearms follow the supplied sweater references.
@@ -97,14 +88,6 @@ for variant in variants:
     point.x=center+(point.x-center)*1.06+side*.012*math.sin(t*math.pi);point.z*=1.05;point.y=height(point.y)
    if obj.name in ['Sweater','Sweater hem']:point=torso(point)
    vert.co=v(point)
- # UV bands wrap the real sweater surfaces and remain attached during skinning.
- if variant=='girl':
-  for obj in garments:
-   if obj.name=='Sweater' or obj.name.startswith('Puffed sleeve'):
-    uv=obj.data.uv_layers.new(name='Knit bands')
-    for loop in obj.data.loops:
-     point=obj.data.vertices[loop.vertex_index].co
-     uv.data[loop.index].uv=(.5,(point.z-1.02)/.27)
  # Keep every garment independent. One subdivision level shapes the actual silhouette.
  for obj in garments:
   bpy.ops.object.select_all(action='DESELECT');obj.select_set(True);bpy.context.view_layer.objects.active=obj
