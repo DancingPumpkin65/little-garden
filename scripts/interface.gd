@@ -12,7 +12,7 @@ var pause_screen := Control.new()
 var objective: Label
 var interaction_hint: Label
 var dialogue: Label
-var bubble := PanelContainer.new()
+var bubble := Panel.new()
 var bubble_tail := Polygon2D.new()
 var bubble_tail_shadow := Polygon2D.new()
 var charge := ProgressBar.new()
@@ -89,6 +89,12 @@ func _ready() -> void:
 	var speech_font := SystemFont.new()
 	speech_font.font_names = PackedStringArray(["Arial"])
 	speech_font.font_weight = 700
+	var reaction_fonts: Array[Font] = []
+	for family in ["Nirmala UI","Segoe UI Symbol","Euphemia"]:
+		var fallback := SystemFont.new()
+		fallback.font_names = PackedStringArray([family])
+		reaction_fonts.append(fallback)
+	speech_font.fallbacks = reaction_fonts
 	dialogue.add_theme_font_override("font", speech_font)
 	dialogue.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dialogue.visible_characters_behavior = TextServer.VC_CHARS_AFTER_SHAPING
@@ -151,7 +157,7 @@ func _ready() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 18)
 	right.add_child(column)
-	var heading := label("A little\ngarden", 54, Color.WHITE)
+	var heading := label("A Little\nInterlude", 54, Color.WHITE)
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(heading)
 	var spacer := Control.new()
@@ -194,14 +200,24 @@ func speech(text: String) -> void:
 	typing_clock = 0
 	spoken_letters = 0
 	bubble.visible = not text.is_empty()
-	# Shape the complete message before revealing characters. The PanelContainer
-	# paints both background and shadow from this one measured rectangle.
+	update_speech_size()
+
+# Full-text wrapping stays fixed; the panel follows only revealed lines.
+func update_speech_size() -> void:
 	var font := dialogue.get_theme_font("font")
 	var font_size := dialogue.get_theme_font_size("font_size")
 	var width := minf(380,get_viewport().get_visible_rect().size.x-76)
-	var measured := font.get_multiline_string_size(dialogue.text,HORIZONTAL_ALIGNMENT_LEFT,width,font_size)
-	dialogue.custom_minimum_size = Vector2(width,maxf(font.get_height(font_size),measured.y))
-	bubble.custom_minimum_size = dialogue.custom_minimum_size+Vector2(44,33)
+	dialogue.custom_minimum_size = Vector2(width,0)
+	dialogue.position = Vector2(22,15)
+	dialogue.size = Vector2(width,font.get_multiline_string_size(dialogue.text,HORIZONTAL_ALIGNMENT_LEFT,width,font_size).y)
+	var height := font.get_height(font_size)
+	var count := dialogue.text.length() if dialogue.visible_characters<0 else dialogue.visible_characters
+	for index in range(count-1,-1,-1):
+		var bounds := dialogue.get_character_bounds(index)
+		if bounds.has_area():
+			height = maxf(height,ceilf(bounds.end.y))
+			break
+	bubble.custom_minimum_size = Vector2(width,height)+Vector2(44,33)
 	bubble.size = bubble.custom_minimum_size
 	bubble.reset_size()
 
@@ -246,6 +262,7 @@ func typing_duration(text: String) -> float:
 	return seconds
 
 func _process(delta: float) -> void:
+	if not dialogue.text.is_empty(): update_speech_size()
 	if get_tree().paused or dialogue.visible_characters < 0 or dialogue.visible_characters >= dialogue.text.length(): return
 	typing_clock += delta
 	while dialogue.visible_characters < dialogue.text.length() and typing_clock >= letter_delay(dialogue.text,dialogue.visible_characters):
@@ -255,3 +272,5 @@ func _process(delta: float) -> void:
 		if not letter.strip_edges().is_empty() and not letter in SENTENCE_END and not letter in CLAUSE_END:
 			spoken_letters += 1
 			if spoken_letters % 2 == 1: letter_spoken.emit(letter)
+
+	update_speech_size()

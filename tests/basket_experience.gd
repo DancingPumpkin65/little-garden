@@ -27,7 +27,11 @@ func run() -> void:
  var original: Transform3D=game.camera.transform
  await frames(90)
  assert(game.camera.position.distance_to(original.origin)>1,"instruction shows the basket")
+ assert(game.camera.position.distance_to(game.camera_cue_lemon.origin)<.3,"tutorial visits the lemon first")
  assert(game.hud.bubble.visible,"instruction stays visible away from its speaker")
+ await shot("lemon-instruction")
+ await frames(maxi(1,int(game.basket_cue_duration*.65*60)-90))
+ assert(game.camera.position.distance_to(game.camera_cue_target.origin)<.3,"tutorial visits basket after lemon")
  await shot("basket-instruction")
  for i in range(1200):
   if game.basket_cue_clock<0: break
@@ -50,7 +54,7 @@ func run() -> void:
  game.camera.look_at(at+Vector3(-.6,1,0))
  var arm: GardenRecoveryPart=game.recovery_parts[0]
  assert(arm.state==GardenRecoveryPart.State.AVAILABLE and arm.highlight.visible,"available arm has a beacon")
- game.hud.speech("Jibi liya lyed dyali o3tiha liya... 3afaak")
+ game.hud.speech("Jibi liya lyed dyali o3tiha liya... 3afaak (╥﹏╥)")
  game.hud.dialogue.visible_characters=-1
  game.update_hud()
  await shot("highlighted-arm")

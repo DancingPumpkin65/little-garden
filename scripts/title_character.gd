@@ -3,6 +3,7 @@ extends SubViewportContainer
 
 var actor := GardenCharacter.new()
 var clock := 0.0
+@export var rotation_speed := 0.45
 
 func _ready() -> void:
  mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -43,7 +44,7 @@ func _process(delta: float) -> void:
  clock += delta
  actor.animate_pose(1,0,true)
  actor.visual.position.y = 0.08+sin(clock*1.4)*0.065
- actor.visual.rotation.y = -0.25+sin(clock*0.35)*0.18
+ actor.visual.rotation.y = -0.25+clock*rotation_speed
  actor.left_leg.rotation.x = -0.12
  actor.right_leg.rotation.x = 0.05
  actor.knees[0].rotation.x = 0.25

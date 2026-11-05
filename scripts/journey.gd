@@ -8,7 +8,7 @@ enum Beat { INTRO, RUN, JUMP, FALLEN }
 const ENTRY_Z := GardenWorld.EXIT_Z - GardenWorld.PASSAGE_LENGTH
 const EDGE_Z := ENTRY_Z - 48.0
 const FAR_Z := EDGE_Z - 40.0
-const LEG_REVEAL_LINE := "Hahiya rajli fjiha lakhra"
+const LEG_REVEAL_LINE := "Hahiya rajli fjiha lakhra (˶°ㅁ°)"
 var prepared := false
 var dialogue_started := false
 var chapter := Chapter.FIRST
@@ -140,7 +140,7 @@ func enter_gap() -> void:
 func start_gap_dialogue() -> void:
 	dialogue_started = true
 	companion.celebration = 0
-	var lines: Array[String] = [LEG_REVEAL_LINE, "Ymkn khassna namchiw na9zo ltmak."]
+	var lines: Array[String] = [LEG_REVEAL_LINE, "Ymkn khassna namchiw na9zo ltmak. (•̀ᴗ•́)و"]
 	dialogue_requested.emit(lines)
 
 func dialogue_finished() -> void:
@@ -181,8 +181,8 @@ func enter_dark() -> void:
 	chapter = Chapter.DARK
 	reunion.activate(leg)
 	clock = 0
-	camera.position = player.position + Vector3(0, 8.5, 12.5)
-	camera.look_at(player.position + Vector3(0, 0.7, -2))
+	camera.position = player.position + Vector3(0, sin(.45)*12, cos(.45)*12)
+	camera.look_at(player.position + Vector3(0, 0.7, -1))
 	await fade_in()
 	crossing = false
 

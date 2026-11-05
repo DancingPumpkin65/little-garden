@@ -14,7 +14,7 @@ func run() -> void:
 		assert(at.y < 0.01 or Vector2(at.x - game.world.bowl.x, at.z - game.world.bowl.z).length() < 1.6 or absf(at.z - GardenWorld.EXIT_Z) < 0.4, "map contains only ground, basket and door")
 	assert(game.recovery_parts.size() == 1 and game.recovery_parts[0].visual.mesh.get_aabb().size.y > 0.65, "reward is an entire arm")
 	for joke in game.MISS_JOKES:
-		for letter in joke: assert(letter.unicode_at(0) < 128, "Darija uses Latin letters")
+		for letter in joke: assert(not (letter.unicode_at(0)>=0x0600 and letter.unicode_at(0)<=0x06ff), "Darija remains Latin; reaction faces may use Unicode")
 	var phases := {}
 	game.player.position = Vector3(-4, 0.1, 4)
 	for i in range(110):

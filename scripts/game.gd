@@ -23,7 +23,8 @@ var bloom := 0.0
 var elapsed := 0.0
 var speech_time := 0.0
 var yaw := 0.0
-var pitch := 0.6
+var pitch := 0.45
+const FOLLOW_DISTANCE := 12.0
 var action_time := 0.0
 var action_released := false
 var throw_velocity := Vector3.ZERO
@@ -48,25 +49,30 @@ var transitioning := false
 var journey := GardenJourney.new()
 var dust := GardenDust.new()
 var friend_dust := GardenDust.new()
-const BASKET_INSTRUCTION := "Khassek thazi limouna li 7dak otlu7iha f sela O"
+const BASKET_INSTRUCTION := "Khassek thazi limouna li 7dak otlu7iha f sela O (•̀ᴗ•́)و"
 var basket_cue_seen := false
 var basket_cue_clock := -1.0
 var basket_cue_duration := 0.0
 var basket_cue_return := Transform3D.IDENTITY
 var camera_cue_target := Transform3D.IDENTITY
+var camera_cue_lemon := Transform3D.IDENTITY
+var showing_basket_tour := false
+var passage_joke_clock := 0.0
+var passage_joke_index := 0
+const PASSAGE_JOKES: Array[String] = ["Had lpassage twil... wach ghadi ldar wla l9amar? (¬_¬)", "Bla ma tjri, mazal ma 3endich permis dyal had rjel! :P", "Had lbab akhor? Wa hadi dar wla escape room? (¬_¬)", "Ila tl3at chi drja, ghankhellik tsbe9ini :P"]
 var leg_cue_seen := false
 var previous_ball_position := Vector3.ZERO
 const INTRO: Array[String] = [
-	"Salam Salma, labas?",
+	"Salam Salma, labas? (˶ᵔᵕᵔ˶)",
 	"3arfek yala jaya men lkhadma, 3iyana o darek rassek o darak kerchek okulchi... :(",
 	"M7tajek t3awnini l9a body parts dyawli :)",
 	BASKET_INSTRUCTION
 ]
 const MISS_JOKES: Array[String] = [
-	"Zgaltiha... Yakma ydik kaydarouk?",
+	"Zgaltiha... Yakma ydik kaydarouk? (¬_¬)",
 	"3awtani majbtihach :/ wa9ila fik n3ass...",
-	"Ma3lich had lmara tjibiha, \"TALTA TABTA\"",
-	"Salma Ez Zyry...",
+	"Ma3lich had lmara tjibiha, \"TALTA TABTA\" (˶ᵔᵕᵔ˶)",
+	"Salma Ez Zyry... (¬_¬)",
 	"-_-"
 ]
 var seed_home := Vector3(-1.4, 0.7, 3.7)
@@ -219,7 +225,7 @@ func set_transition_locked(value: bool) -> void:
 	transitioning = value
 	if value:
 		yaw = 0
-		pitch = 0.6
+		pitch = 0.45
 		player.drive = Vector3.ZERO
 		player.jump_requested = false
 		charging = false
@@ -252,6 +258,10 @@ func next_dialogue() -> void:
 		var subject := world.bowl+Vector3.UP*1.4 if show_basket else journey.leg.global_position+Vector3.UP*.4
 		var offset := Vector3(-3,3.1,7) if show_basket else Vector3(5,3,9)
 		camera_cue_target = Transform3D(Basis.IDENTITY,subject+offset).looking_at(subject)
+		showing_basket_tour = show_basket
+		if show_basket:
+			var lemon := ball.global_position
+			camera_cue_lemon = Transform3D(Basis.IDENTITY,lemon+Vector3(-2,2,4)).looking_at(lemon)
 		basket_cue_clock = 0
 		basket_cue_duration = speech_time
 		basket_cue_return = camera.transform
@@ -336,7 +346,7 @@ func interact() -> void:
 		if part.state == GardenRecoveryPart.State.AVAILABLE and player.global_position.distance_to(part.global_position) < 2:
 			pickup_part(part)
 			friend.waiting_for_arm = true
-			say("Jibi liya lyed dyali o3tiha liya... 3afaak", 5)
+			say("Jibi liya lyed dyali o3tiha liya... 3afaak (╥﹏╥)", 5)
 			return
 	if stage == Stage.PATH and player.position.distance_to(Vector3(0, 0, GardenWorld.EXIT_Z)) < 2.2:
 		request_first_door()
@@ -353,8 +363,8 @@ func interact() -> void:
 		sound.chime(392)
 		if dialogue_queue.is_empty(): say(BASKET_INSTRUCTION, 5)
 	elif player.position.distance_to(friend.position) < 3:
-		if stage == Stage.PATH: say("Yala namchiw 3end lbab")
-		elif stage in [Stage.REVEAL, Stage.GARDEN]: say("Jibi liya lyed dyali o3tiha liya... 3afaak")
+		if stage == Stage.PATH: say("Yala namchiw 3end lbab (˶ᵔᵕᵔ˶)")
+		elif stage in [Stage.REVEAL, Stage.GARDEN]: say("Jibi liya lyed dyali o3tiha liya... 3afaak (╥﹏╥)")
 		else: say_sequence(INTRO)
 
 func part_returned(_kind: StringName) -> void:
@@ -362,7 +372,7 @@ func part_returned(_kind: StringName) -> void:
 	sound.chime(783.99)
 	stage = Stage.PATH
 	friend.celebration = 3.5
-	var lines: Array[String] = ["Nice! Db khassna l9aw rjel dyali", "Yala namchiw 3end lbab"]
+	var lines: Array[String] = ["Nice! Db khassna l9aw rjel dyali (˶ᵔᵕᵔ˶)", "Yala namchiw 3end lbab (˶ᵔᵕᵔ˶)"]
 	say_sequence(lines)
 
 func forward() -> Vector3:
@@ -449,7 +459,7 @@ func planted() -> void:
 	charging = false
 	for i in range(recovery_parts.size()):
 		recovery_parts[i].emerge(world.bowl + Vector3(0, 1.6, 0), world.bowl + Vector3(-1.7, 0.85, 0.8))
-	var lines: Array[String] = ["Bravo! Makuntch 3aref rak sportif! :3" if missed_throws <= 1 else "3la slama... Bravo 3lik!", "Jibi liya lyed dyali o3tiha liya... 3afaak"]
+	var lines: Array[String] = ["Bravo! Makuntch 3aref rak sportif! :3" if missed_throws <= 1 else "3la slama... Bravo 3lik! (˶ᵔᵕᵔ˶)", "Jibi liya lyed dyali o3tiha liya... 3afaak (╥﹏╥)"]
 	say_sequence(lines)
 	sound.chime(659.25)
 
@@ -533,20 +543,30 @@ func _physics_process(delta: float) -> void:
 			var planar := Vector2(goal.x, goal.z).limit_length(GardenWorld.MAP_RADIUS - 0.8)
 			friend.follow_offset = Vector3(planar.x, 0, planar.y) - Vector3(player.position.x, 0, player.position.z)
 	var focus := player.position + Vector3(0, 0.7, -1)
-	if journey.chapter == GardenJourney.Chapter.GAP: focus.z -= 4
-	var offset := Vector3(0, sin(pitch) * 15.1, cos(pitch) * 15.1).rotated(Vector3.UP, yaw)
+	var offset := Vector3(0, sin(pitch) * FOLLOW_DISTANCE, cos(pitch) * FOLLOW_DISTANCE).rotated(Vector3.UP, yaw)
 	camera.position = camera.position.lerp(focus + offset, 1.0 - exp(-delta * 4))
 	camera.look_at(focus)
 	if basket_cue_clock>=0:
 		basket_cue_clock += delta
 		var weight := smoothstep(0,1,basket_cue_clock)*smoothstep(0,1,basket_cue_duration-basket_cue_clock)
-		camera.transform = basket_cue_return.interpolate_with(camera_cue_target,weight)
+		var tour_target := camera_cue_target
+		if showing_basket_tour:
+			var swap := smoothstep(basket_cue_duration*.30,basket_cue_duration*.52,basket_cue_clock)
+			tour_target = camera_cue_lemon.interpolate_with(camera_cue_target,swap)
+		camera.transform = basket_cue_return.interpolate_with(tour_target,weight)
 		if basket_cue_clock>=basket_cue_duration: basket_cue_clock = -1
 	if screenshot_mode.begins_with("characters"):
 		camera.position = Vector3(0, 2.9, 7.6)
 		camera.look_at(Vector3(0, 1.4, 2))
 	update_hud()
 	update_aim()
+	var in_passage := (world.passage_revealed and journey.chapter==GardenJourney.Chapter.FIRST and player.position.z<GardenWorld.EXIT_Z-5) or (journey.chapter==GardenJourney.Chapter.DARK and journey.reunion.phase==GardenReunion.Phase.PASSAGE)
+	if in_passage and speech_time<=0 and dialogue_queue.is_empty():
+		passage_joke_clock += delta
+		if passage_joke_clock>7 and passage_joke_index<PASSAGE_JOKES.size():
+			say(PASSAGE_JOKES[passage_joke_index])
+			passage_joke_index+=1
+			passage_joke_clock=0
 	if testing: self_test()
 	if not screenshot_mode.is_empty() and not capturing and elapsed > 1.5:
 		capturing = true
@@ -563,18 +583,18 @@ func update_hud() -> void:
 	hud.interaction_hint.text = ""
 	if not transitioning and basket_cue_clock<0 and player.action.is_empty():
 		if carried_part!=null:
-			hud.interaction_hint.text = "E  •  3ti lyed l sa7bek" if carried_part.kind==&"arm" and player.position.distance_to(friend.position)<3 else "Hold click • aim   /   Release • throw"
+			hud.interaction_hint.text = "E  â€¢  3ti lyed l sa7bek" if carried_part.kind==&"arm" and player.position.distance_to(friend.position)<3 else "Hold click â€¢ aim   /   Release â€¢ throw"
 		elif held:
-			hud.interaction_hint.text = "Hold click • aim   /   Release • throw"
+			hud.interaction_hint.text = "Hold click â€¢ aim   /   Release â€¢ throw"
 		elif stage==Stage.SEED and player.position.distance_to(ball.position)<2:
-			hud.interaction_hint.text = "E  •  Hez limouna"
+			hud.interaction_hint.text = "E  â€¢  Hez limouna"
 		else:
 			for part in recovery_parts:
 				if part.state==GardenRecoveryPart.State.AVAILABLE and player.position.distance_to(part.position)<2:
-					hud.interaction_hint.text = "E  •  Hez lyed"
+					hud.interaction_hint.text = "E  â€¢  Hez lyed"
 			var head := journey.reunion.head
 			if head!=null and head.state==GardenRecoveryPart.State.AVAILABLE and player.position.distance_to(head.position)<2:
-				hud.interaction_hint.text = "E  •  Hez rass"
+				hud.interaction_hint.text = "E  â€¢  Hez rass"
 	if friend.visible and not transitioning:
 		var speaker := friend.global_position + Vector3.UP * 2.35
 		var story := journey.reunion

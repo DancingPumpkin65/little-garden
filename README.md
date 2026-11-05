@@ -1,4 +1,4 @@
-# A little garden
+# A Little Interlude
 
 A standalone Godot 4.7.2 scene, separate from Bewerbung. Original low-poly characters inspired by the broad visual approach of Bryson McBee's birthday game. No assets from his game are used.
 

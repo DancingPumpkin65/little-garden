@@ -43,16 +43,16 @@ var garden_comment_wait := 18.0
 var last_garden_line := ""
 const GARDEN_COMMENTS: Array[String] = [
 	"Chufi! Fin kandouz kaytla3 lward :3",
-	"Wa had jerda katzid tzian bik!",
+	"Wa had jerda katzid tzian bik! (˶ᵔᵕᵔ˶)",
 	"Salma, had nhar dyalk. Khodi ra7tek :)",
 	"Kan9elleb 3la chi blassa zwina ntsawro fiha :P"
 ]
-const HIT_LINES: Array[String] = ["Aaaay, kunt 3arfek bghiti darbini mn ch7al hadi...", "Salmaaaaa ghatharssi rassi huwa lwal... :')", "WEEEEEEEEEEEE!!!"]
+const HIT_LINES: Array[String] = ["Aaaay, kunt 3arfek bghiti darbini mn ch7al hadi... (>﹏<)", "Salmaaaaa ghatharssi rassi huwa lwal... :')", "WEEEEEEEEEEEE!!! (ദ്ദി˙ᗜ˙)"]
 const BIRTHDAY_LINES: Array[String] = [
-	"Happy birthday!!!",
-	"Raki kbarti oweliti wa7ed l2inssana wa3ra",
+	"Happy birthday!!! (˶ᵔᵕᵔ˶)",
+	"Raki kbarti oweliti wa7ed l2inssana wa3ra (˶ᵔᵕᵔ˶)",
 	"Kima kabrat had jerda, tantiya kberti o ba9i ghatkabri... :')",
-	"Knatmana lik kul khir, odkhel 3lik sna jdida bachma tmaniti inchallah!",
+	"Knatmana lik kul khir, odkhel 3lik sna jdida bachma tmaniti inchallah! (˶ᵔᵕᵔ˶)",
 	"Tmachay fjarda tchufiha kidayra :3"
 ]
 var root: Node3D
@@ -86,7 +86,7 @@ func make_flower(at: Vector3) -> GardenBloom:
 func head_missed() -> void:
 	if phase != Phase.CAKE: return
 	missed_shots += 1
-	var lines: Array[String] = ["Darbi zaj machi lhwa" if missed_shots==1 else "Wa9ila ma3afach tchayeri..."]
+	var lines: Array[String] = ["Darbi zaj machi lhwa (¬_¬)" if missed_shots==1 else "Wa9ila ma3afach tchayeri... (╥﹏╥)"]
 	dialogue_requested.emit(lines)
 
 func on_glass_impact(broken: bool) -> void:
@@ -213,7 +213,7 @@ func _physics_process(delta: float) -> void:
 		lead_to(Vector3(1.3,0.02,DOOR_Z+4))
 		if guy.position.z < -30 and not near_line:
 			near_line = true
-			var lines: Array[String] = ["9rabna nwasslo, mab9a walo"]
+			var lines: Array[String] = ["9rabna nwasslo, mab9a walo (˶ᵔᵕᵔ˶)"]
 			dialogue_requested.emit(lines)
 		if guy.position.distance_to(Vector3(1.3,0.02,DOOR_Z+4))<0.7 and girl.position.z < DOOR_Z+9:
 			phase = Phase.DOOR
@@ -244,7 +244,7 @@ func _physics_process(delta: float) -> void:
 		if not introduced and girl.position.distance_to(Vector3(0,0,CAKE_Z))<10:
 			introduced = true
 			speech_from_head = true
-			var lines: Array[String] = ["Khasski tharssi zaj bach takhdi lcadeau dyalk...", "Ach ban lik thazi rass dyali otharssi bih zaj..."]
+			var lines: Array[String] = ["Salaaaaam Salma, finally kanchufek! (˶ᵔᵕᵔ˶)", "Happy birthdaaaaay! :D", "Khasski tharssi zaj bach takhdi lcadeau dyalk... (˶ᵔᵕᵔ˶)", "Ach ban lik thazi rass dyali otharssi bih zaj... (¬_¬)"]
 			dialogue_requested.emit(lines)
 
 	elif phase == Phase.BIRTHDAY:
