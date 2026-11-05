@@ -2,7 +2,7 @@ class_name GardenBloom
 extends Node3D
 const DURATION := 2.3
 static var petal_mesh: Mesh
-static var materials: Dictionary[Color,ShaderMaterial] = {}
+static var materials: Dictionary[String,ShaderMaterial] = {}
 const SOIL_SHADER := preload("res://shaders/flower_soil.gdshader")
 var color := Color("f4c5d8")
 var kind := 0
@@ -15,17 +15,29 @@ var stem: MeshInstance3D
 var bud := Node3D.new()
 var leaves: Array[Node3D] = []
 var petals: Array[Node3D] = []
-static func material(tint: Color) -> ShaderMaterial:
-	if not materials.has(tint):
+var parts: Array[MeshInstance3D] = []
+var batches: Array[MultiMeshInstance3D] = []
+var batched_parts: Array[MeshInstance3D] = []
+var built := false
+static func material(tint: Color, soil_height: float = 0.0) -> ShaderMaterial:
+	var key := tint.to_html()+":"+str(soil_height)
+	if not materials.has(key):
 		var surface := ShaderMaterial.new()
 		surface.shader = SOIL_SHADER
 		surface.set_shader_parameter("tint",tint)
-		materials[tint] = surface
-	return materials[tint]
+		surface.set_shader_parameter("soil_height",soil_height)
+		materials[key] = surface
+	return materials[key]
 static func lobe(parent: Node3D, at: Vector3, size: Vector3, tint: Color) -> MeshInstance3D:
 	if petal_mesh == null: petal_mesh = GardenVegetationAssets.mesh(&"Lobe")
 	return Shapes.mesh(parent,petal_mesh,at,material(tint),size)
 func _ready() -> void:
+	if delay<=0: build_parts()
+
+# Delayed beds construct when they start emerging, spreading the garden's setup cost.
+func build_parts() -> void:
+	if built: return
+	built = true
 	stem = MeshInstance3D.new()
 	stem.material_override = material(Color("259452"))
 	stem.mesh = GardenVegetationAssets.mesh(&"Stem")
@@ -57,18 +69,27 @@ func _ready() -> void:
 				var radius := sqrt(i/12.0)*0.11
 				lobe(bud,Vector3(cos(angle)*radius,0.08,sin(angle)*radius),Vector3.ONE*0.028,Color("bc8b43"))
 	for mesh: MeshInstance3D in find_children("*","MeshInstance3D",true,false):
-		mesh.set_instance_shader_parameter("soil_height",global_position.y)
+		var tint: Color = (mesh.material_override as ShaderMaterial).get_shader_parameter("tint")
+		mesh.material_override = material(tint,global_position.y)
+		parts.append(mesh)
 	pose(0)
 func start() -> void:
 	started = true
 func open_now() -> void:
+	build_parts()
 	started = true
 	age = DURATION+delay
 	progress = 1
 	pose(1)
+	batch_open_parts()
 	set_physics_process(false)
 # Only the stem extends; leaves and petals unfold around fixed pivots.
 func pose(amount: float) -> void:
+	if amount<1 and not batches.is_empty():
+		for batch in batches: batch.queue_free()
+		batches.clear()
+		for part in batched_parts: part.show()
+		batched_parts.clear()
 	var length := height*smoothstep(0,0.67,amount)
 	bud.visible = amount>0.005
 	var buried := (0.95 if kind>=4 else 0.40)*(1-smoothstep(0.12,0.52,amount))
@@ -86,8 +107,40 @@ func _physics_process(delta: float) -> void:
 	if not started: return
 	age += delta
 	progress = clampf((age-delay)/DURATION,0,1)
-	if progress>0: pose(progress)
-	if progress>=1: set_physics_process(false)
+	if progress>0:
+		build_parts()
+		pose(progress)
+	if progress>=1:
+		batch_open_parts()
+		set_physics_process(false)
+
+# Once growth finishes, identical petals/leaves share a draw call. Pivots stay available.
+func batch_open_parts() -> void:
+	if not batches.is_empty(): return
+	var groups: Dictionary[String,Array] = {}
+	for part in parts:
+		if not part.visible: continue
+		var key := str(part.mesh.get_instance_id())+":"+str(part.material_override.get_instance_id())
+		if not groups.has(key): groups[key] = []
+		groups[key].append(part)
+	for group: Array in groups.values():
+		if group.size()<2: continue
+		var first: MeshInstance3D = group[0]
+		var instances := MultiMesh.new()
+		instances.transform_format = MultiMesh.TRANSFORM_3D
+		instances.mesh = first.mesh
+		instances.instance_count = group.size()
+		var batch := MultiMeshInstance3D.new()
+		batch.multimesh = instances
+		batch.material_override = first.material_override
+		add_child(batch)
+		var inverse := global_transform.affine_inverse()
+		for i in range(group.size()):
+			var part: MeshInstance3D = group[i]
+			instances.set_instance_transform(i,inverse*part.global_transform)
+			part.hide()
+			batched_parts.append(part)
+		batches.append(batch)
 
 func build_spike() -> void:
 	var tiers := 7 if kind==4 else 5

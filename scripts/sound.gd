@@ -4,6 +4,10 @@ extends Node
 var player := AudioStreamPlayer.new()
 var voice := AudioStreamPlayer.new()
 var effects := AudioStreamPlayer.new()
+var music := AudioStreamPlayer.new()
+var music_fade: Tween
+const BACKGROUND_MUSIC := preload("res://assets/music/musicbackground.mp3")
+const MUSIC_VOLUME_DB := -26.0
 var syllables: Array[AudioStreamWAV] = []
 var jump_clip: AudioStreamWAV
 
@@ -11,12 +15,19 @@ func _ready() -> void:
 	add_child(player)
 	add_child(voice)
 	add_child(effects)
+	add_child(music)
 	if DisplayServer.get_name() == "headless": return
 	voice.volume_db = -20
 	effects.volume_db = -17
 	for frequency in [135, 148, 161, 174, 187]: syllables.append(voice_tone(frequency))
 	jump_clip = jump_tone()
 	player.volume_db = -14
+	music.stream = BACKGROUND_MUSIC
+	(music.stream as AudioStreamMP3).loop = true
+	music.volume_db = -60
+	music.play()
+	music_fade = create_tween()
+	music_fade.tween_property(music,"volume_db",MUSIC_VOLUME_DB,2.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 func tone(frequency: float, seconds: float, looped: bool = false) -> AudioStreamWAV:
 	var rate := 22050
@@ -42,6 +53,9 @@ func chime(frequency: float = 523.25) -> void:
 	player.play()
 
 func silence() -> void:
+	if music_fade != null: music_fade.kill()
+	music.stop()
+	music.stream = null
 	player.stop()
 	voice.stop()
 	effects.stop()

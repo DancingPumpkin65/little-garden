@@ -167,6 +167,8 @@ func _ready() -> void:
 		var dot := Shapes.sphere(self, Vector3.ZERO, Vector3.ONE * 0.075, dot_mat)
 		dot.visible = false
 		aim_dots.append(dot)
+	# The opaque title has its own viewport; do not render the covered game world.
+	for node: Node3D in [world,player,friend,ball]: node.hide()
 	if testing or not screenshot_mode.is_empty():
 		if screenshot_mode != "title": start()
 		if screenshot_mode.begins_with("characters"):
@@ -229,6 +231,7 @@ func start() -> void:
 	hud.pause_screen.hide()
 	stage = Stage.SEED
 	hud.title_screen.hide()
+	for node: Node3D in [world,player,friend,ball]: node.show()
 	if not testing and screenshot_mode.is_empty(): Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	friend.follow_target = player if not screenshot_mode.begins_with("characters") else null
 	var focus := player.position + Vector3(0,0.7,-1)

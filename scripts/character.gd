@@ -449,6 +449,8 @@ func put_on_birthday_outfit() -> void:
 	# Remove only covered body triangles. Face, mittens, shoes and identity accessories stay.
 	for child: MeshInstance3D in model_root.find_children("*","MeshInstance3D",true,false):
 		if child.skin==null or wardrobe.is_ancestor_of(child): continue
+		# These modular meshes bind only to head/hand bones, so clothing cannot cover them.
+		if child.name in [&"HEAD",&"HAND_LEFT",&"HAND_RIGHT"]: continue
 		if child.name in [&"TORSO",&"ARM_LEFT",&"ARM_RIGHT",&"LEG_LEFT",&"LEG_RIGHT",&"FOOT_LEFT",&"FOOT_RIGHT"]:
 			if child.visible:
 				retiring.append(child)

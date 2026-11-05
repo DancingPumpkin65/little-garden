@@ -21,6 +21,11 @@ var curtain := ColorRect.new()
 var finish: Label
 var typing_clock := 0.0
 var spoken_letters := 0
+var layout_text := ""
+var layout_count := -2
+var layout_width := -1.0
+var layout_font: Font
+var layout_font_size := -1
 const LETTER_INTERVAL := 0.070
 const SENTENCE_END := [".", "!", "?", "\u061f"]
 const CLAUSE_END := [",", ":", ";", "\u060c", "\u061b"]
@@ -213,11 +218,17 @@ func update_speech_size() -> void:
 	var font := dialogue.get_theme_font("font")
 	var font_size := dialogue.get_theme_font_size("font_size")
 	var width := minf(380,get_viewport().get_visible_rect().size.x-76)
+	var count := dialogue.text.length() if dialogue.visible_characters<0 else dialogue.visible_characters
+	if layout_text==dialogue.text and layout_count==count and layout_width==width and layout_font==font and layout_font_size==font_size: return
+	layout_text = dialogue.text
+	layout_count = count
+	layout_width = width
+	layout_font = font
+	layout_font_size = font_size
 	dialogue.custom_minimum_size = Vector2(width,0)
 	dialogue.position = Vector2(22,15)
 	dialogue.size = Vector2(width,font.get_multiline_string_size(dialogue.text,HORIZONTAL_ALIGNMENT_LEFT,width,font_size).y)
 	var height := font.get_height(font_size)
-	var count := dialogue.text.length() if dialogue.visible_characters<0 else dialogue.visible_characters
 	var last_bounds := Rect2()
 	for index in range(count-1,-1,-1):
 		var bounds := dialogue.get_character_bounds(index)

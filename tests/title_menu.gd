@@ -10,6 +10,7 @@ func run() -> void:
  var preview := hud.title_screen.get_node("Floating character") as GardenTitleCharacter
  for i in range(12): await process_frame
  assert(game.stage==game.Stage.TITLE and preview.actor.imported_skeleton!=null)
+ assert(not game.world.visible and not game.player.visible and not game.friend.visible,"title does not render the covered game world")
  var before := preview.actor.visual.position.y
  for i in range(15): await process_frame
  assert(not is_equal_approx(before,preview.actor.visual.position.y),"title character floats")
@@ -36,6 +37,7 @@ func run() -> void:
  hud.play_button.pressed.emit()
  for i in range(3): await process_frame
  assert(game.stage==game.Stage.SEED and not hud.title_screen.visible,"Play enters gameplay")
+ assert(game.world.visible and game.player.visible and game.friend.visible,"Play restores the world and actors")
  assert(not preview.is_processing(),"hidden title stops animating")
  assert(preview.get_child(0).render_target_update_mode==SubViewport.UPDATE_DISABLED,"hidden title stops rendering")
  print("TITLE_MENU_PASS floating preview, button contrast, hover, keyboard focus and Play")

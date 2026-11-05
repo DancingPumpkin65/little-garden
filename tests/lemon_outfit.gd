@@ -49,10 +49,14 @@ func run() -> void:
  game.environment.background_color=Color("363e43")
  DirAccess.make_dir_recursive_absolute("res://artifacts/cyan-review")
  var capture := "--capture-outfit" in OS.get_cmdline_user_args() and DisplayServer.get_name()!="headless"
+ var identity_meshes: Dictionary[MeshInstance3D,Mesh]={}
  for actor in [game.player,game.friend]:
+  for mesh: MeshInstance3D in actor.model_root.find_children("*","MeshInstance3D",true,false):
+   if mesh.name in [&"HEAD",&"HAND_LEFT",&"HAND_RIGHT"]:identity_meshes[mesh]=mesh.mesh
   actor.visual.rotation.y=0
   actor.animate_pose(1,0,true)
   actor.put_on_birthday_outfit()
+ for mesh in identity_meshes:assert(mesh.mesh==identity_meshes[mesh],"clothing preserves identity meshes without rebuilding them")
  var sweater: MeshInstance3D=game.player.model_root.get_node("Birthday clothing/SWEATER_TORSO")
  var material := sweater.mesh.surface_get_material(0) as BaseMaterial3D
  assert(material.albedo_texture==null and material.albedo_color.g>material.albedo_color.r*2,"sweater is cyan with no stripe texture")
